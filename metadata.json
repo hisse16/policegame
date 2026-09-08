@@ -1,0 +1,6 @@
+{
+  "name": "Investigator Workstation",
+  "description": "Fictional simulated Linux workstation operating system for detective and investigative work.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

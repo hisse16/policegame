@@ -12,6 +12,28 @@ export const APP_REGISTRY: Record<string, AppDefinition> = {
     minWidth: 720,
     minHeight: 480
   },
+  'evidence-lab': {
+    id: 'evidence-lab',
+    name: 'Evidence & Forensics',
+    icon: 'Microscope',
+    description: 'Forensics Laboratory, Chain of Custody, Lab Reports & Evidence Photography',
+    category: 'System',
+    defaultWidth: 1080,
+    defaultHeight: 700,
+    minWidth: 760,
+    minHeight: 480
+  },
+  'investigation-board': {
+    id: 'investigation-board',
+    name: 'Investigation Board',
+    icon: 'GitMerge',
+    description: 'Interactive Corkboard, Connections, Hypotheses & Chronological Timeline',
+    category: 'System',
+    defaultWidth: 1120,
+    defaultHeight: 720,
+    minWidth: 800,
+    minHeight: 500
+  },
   'file-manager': {
     id: 'file-manager',
     name: 'Files',

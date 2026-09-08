@@ -10,6 +10,8 @@ import { SystemMonitorApp } from '../apps/SystemMonitorApp';
 import { SettingsApp } from '../apps/SettingsApp';
 import { CalculatorApp } from '../apps/CalculatorApp';
 import { PoliceApp } from '../apps/police/PoliceApp';
+import { EvidenceLabApp } from '../apps/evidence/EvidenceLabApp';
+import { InvestigationBoardApp } from '../apps/board/InvestigationBoardApp';
 import { InvestigationNotebookApp } from '../apps/notebook/InvestigationNotebookApp';
 import { FinalDeductionApp } from '../apps/deduction/FinalDeductionApp';
 
@@ -20,6 +22,10 @@ export const WindowManager: React.FC = () => {
     switch (appId) {
       case 'police-records':
         return <PoliceApp initialCaseId={params?.caseId || params?.recordId} />;
+      case 'evidence-lab':
+        return <EvidenceLabApp windowId={windowId} params={params} />;
+      case 'investigation-board':
+        return <InvestigationBoardApp windowId={windowId} params={params} />;
       case 'investigation-notebook':
         return (
           <InvestigationNotebookApp

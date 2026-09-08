@@ -1262,7 +1262,7 @@ export const STORY_FACTS: StoryFact[] = [
   {
     id: 'fact_suspicious_vehicle_call',
     act: 2,
-    category: 'INCIDENT',
+    category: 'CASE',
     text: 'Incident INC-1998-0915 was logged at 22:41 regarding a sedan matching the Taurus parked partially across the sidewalk.',
     source: 'Incident INC-1998-0915',
     relatedRecordIds: ['INC-1998-0915', 'VEH-1987-0481']

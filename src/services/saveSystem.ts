@@ -2,6 +2,7 @@ import { GAME_CONFIG } from '../config/gameConfig';
 import { SaveMetadata } from '../types/game';
 import { vfs } from './vfs';
 import { browserDb } from './browserDatabase';
+import { policeDatabase } from './police/databaseEngine';
 
 const SAVE_META_KEY = 'case27_investigation_meta';
 const PLAYTIME_KEY = 'case27_investigation_playtime';
@@ -71,12 +72,13 @@ class SaveSystem {
 
   public saveCurrentGame(reason: string = 'autosave') {
     try {
-      // 1. Sync browser state
+      // 1. Sync browser and police databases
       browserDb.save();
+      policeDatabase.savePersistence();
 
       // 2. Count current case documents/evidence files in VFS
       const evidenceFiles = vfs.listDir('/home/investigator/Documents/Case_27_Evidence');
-      const totalEvidence = (evidenceFiles ? evidenceFiles.length : 0) + 2;
+      const totalEvidence = (evidenceFiles ? evidenceFiles.length : 0) + policeDatabase.getEvidenceRecords().length;
 
       // 3. Update playtime
       const totalPlaytime = this.savePlaytime();
@@ -111,8 +113,10 @@ class SaveSystem {
       browserDb.downloads = [];
       browserDb.save();
 
-      // Reset OS settings
+      // Reset OS settings & police database
       localStorage.removeItem('investigator_os_settings');
+      localStorage.removeItem('pris_database_persistence_v2');
+      localStorage.removeItem('investigator_os_story_state_v1');
 
       // Reset playtime & story
       this.accumulatedPlaytime = 0;
@@ -146,6 +150,8 @@ class SaveSystem {
       browserDb.downloads = [];
       browserDb.save();
       localStorage.removeItem('investigator_os_settings');
+      localStorage.removeItem('pris_database_persistence_v2');
+      localStorage.removeItem('investigator_os_story_state_v1');
       sessionStorage.removeItem('securix_initial_boot');
     } catch {}
   }

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Icon } from '../../../common/Icon';
 import { EvidenceRecord, AnyRecord } from '../../../../types/police';
 import { policeDatabase } from '../../../../services/police/databaseEngine';
+import { useOS } from '../../../../context/OSContext';
 
 interface EvidenceDetailViewProps {
   evidence: EvidenceRecord;
@@ -16,6 +17,7 @@ export const EvidenceDetailView: React.FC<EvidenceDetailViewProps> = ({
   onExportRecord,
   onBack
 }) => {
+  const { openApp } = useOS();
   const [newNote, setNewNote] = useState('');
   const isBookmarked = policeDatabase.isBookmarked(evidence.id);
   const notes = policeDatabase.getNotesForRecord(evidence.id);
@@ -49,6 +51,24 @@ export const EvidenceDetailView: React.FC<EvidenceDetailViewProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => openApp('evidence-lab', { evidenceId: evidence.id })}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs bg-emerald-950/80 border border-emerald-700 text-emerald-300 hover:bg-emerald-900 transition-colors font-bold"
+              title="Perform deep forensic analysis and view photographic evidence in Lab"
+            >
+              <Icon name="Microscope" className="w-3.5 h-3.5 text-emerald-400" />
+              <span>FORENSICS LAB</span>
+            </button>
+
+            <button
+              onClick={() => openApp('investigation-board', { focusRecordId: evidence.id })}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs bg-blue-950/80 border border-blue-700 text-blue-300 hover:bg-blue-900 transition-colors font-bold"
+              title="Pin evidence docket to the Investigation Board"
+            >
+              <Icon name="GitMerge" className="w-3.5 h-3.5 text-blue-400" />
+              <span>PIN TO BOARD</span>
+            </button>
+
             <button
               onClick={() => policeDatabase.toggleBookmark(evidence.id)}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs border transition-colors ${

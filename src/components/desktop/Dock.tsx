@@ -3,7 +3,17 @@ import { useOS } from '../../context/OSContext';
 import { APP_REGISTRY } from '../../config/apps';
 import { Icon } from '../common/Icon';
 
-const PINNED_APPS = ['police-records', 'file-manager', 'terminal', 'browser', 'text-editor', 'system-monitor', 'settings'];
+const PINNED_APPS = [
+  'police-records',
+  'evidence-lab',
+  'investigation-board',
+  'investigation-notebook',
+  'file-manager',
+  'terminal',
+  'browser',
+  'text-editor',
+  'settings'
+];
 
 export const Dock: React.FC = () => {
   const { windows, activeWindowId, openApp, focusWindow, minimizeWindow } = useOS();

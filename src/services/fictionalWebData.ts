@@ -1307,5 +1307,113 @@ Server: Securix-HTTPd/2.4
 For historical archived versions of this page from 2004, visit http://archive.local.`
       }
     }
+  },
+  'news.northbridge-herald.local': {
+    domain: 'news.northbridge-herald.local',
+    name: 'Northbridge Herald Archive',
+    category: 'News',
+    icon: 'Newspaper',
+    isHttps: false,
+    pages: {
+      '/': {
+        url: 'http://news.northbridge-herald.local/',
+        title: 'Northbridge Herald - Digital Newspaper Archive',
+        category: 'News',
+        content: `NORTHBRIDGE HERALD - HISTORIC ARCHIVES (1892-2015)
+Search back issues of the Northbridge Herald, serving the tri-county area for over a century.`
+      },
+      '/archive/bell-electronics-bankruptcy': {
+        url: 'http://news.northbridge-herald.local/archive/bell-electronics-bankruptcy',
+        title: 'Bell Electronics Shuts Down Amid Disputed Financial Audits (Nov 2003)',
+        category: 'News',
+        content: `NORTHBRIDGE HERALD — ARCHIVE REPRINT
+DATE: November 14, 2003
+HEADLINE: Bell Electronics Shuts Down Amid Disputed Financial Audits
+
+NORTHBRIDGE — Following months of legal wrangling with state revenue agents, Bell Electronics Components has formally entered Chapter 7 liquidation, shuttering its sprawling 104 Waterfront Way assembly plant.
+
+Court filings submitted Wednesday reveal that independent auditors uncovered over $2.4 million in unverified telecommunications component shipments billed to freight partner Crownline Logistics between 1996 and 2001.
+
+Former employees gathered outside the plant gates described years of tension following the mysterious September 1998 disappearance of lead auditor Anna Claire Bell, who had reportedly raised internal red flags regarding duplicate shipping bills.
+
+“Anna warned management that phantom shipments were leaving the docks under police escort,” claimed one former warehouse worker who spoke on condition of anonymity. “A week later she was gone, and management seized her files.”
+
+Plant supervisor Daniel Mercer declined to comment when reached by phone at his home yesterday. Police records indicate Mercer was briefly questioned in 1998 but never named as an official suspect. Creditors have petitioned the superior court to subpoena all remaining corporate bank records and shipping manifests before the property is auctioned off next spring.`
+      },
+      '/archive/hayes-resignation-2008': {
+        url: 'http://news.northbridge-herald.local/archive/hayes-resignation-2008',
+        title: 'Detective Daniel Hayes Resigns Following Evidence Vault Discrepancy (April 2008)',
+        category: 'News',
+        content: `NORTHBRIDGE HERALD — SPECIAL REPORT
+DATE: April 18, 2008
+HEADLINE: Veteran Detective Hayes Resigns Following Evidence Vault Discrepancy
+
+NORTHBRIDGE — Detective Daniel Hayes (#3014), lead investigator on several prominent municipal cases throughout the late 1990s including the cold case of Anna Bell (CASE-1998-027), has resigned from the Northbridge Police Department effective immediately.
+
+Precinct sources confirmed this morning that Hayes tendered his badge following an internal audit of Central Evidence Vault B. The audit reportedly uncovered tampering and missing cassette recordings related to unindexed freight investigations.
+
+Captain Arthur Vance of the Detective Bureau stated that Hayes had chosen to pursue private sector security consulting and declined to comment on whether internal disciplinary proceedings had been contemplated.`
+      }
+    }
+  },
+  'metroforum.local': {
+    domain: 'metroforum.local',
+    name: 'Metro City Community Forum',
+    category: 'Community',
+    icon: 'MessageSquare',
+    isHttps: false,
+    pages: {
+      '/': {
+        url: 'http://metroforum.local/',
+        title: 'Metro Forum - Community Discussion Boards',
+        category: 'Community',
+        content: `METRO COMMUNITY FORUMS // General Discussion, Local History, and Investigative Boards.`
+      },
+      '/thread/unsolved-cases-northbridge': {
+        url: 'http://metroforum.local/thread/unsolved-cases-northbridge',
+        title: 'Northbridge Cold Cases: The 1998 Disappearance of Anna Bell (Thread #4092)',
+        category: 'Community',
+        content: `METRO FORUM // THREAD #4092: UNSOLVED CASES - NORTHBRIDGE
+OP: HarborWatcher98 (Posted 2012-04-14)
+Topic: Anna Bell (Case 27) - What really happened on Willow Street?
+
+[HarborWatcher98]: Does anyone from Northbridge remember the Anna Bell case from September '98? 17-year-old girl vanishes after her shift at Bell Electronics. Her Taurus turns up weeks later down on Canal Road, completely wiped down. The cops basically called it a runaway or cold case within 4 months.
+
+[NightShiftClerk]: I worked the counter at the diner on Grand Ave back then. Detective Hayes came in asking if anyone saw a white Caprice or Taurus around 10:30 PM. But here's the kicker: Hayes himself drove an unmarked Caprice, and he was seen parked outside the Crownline loading dock half an hour earlier.
+
+[WarehouseAnon]: Anyone in logistics knew Crownline was moving hot avionics sensors out of Bell Electronics. Anna found the duplicate manifests. Hayes and Vance were providing police cruiser escorts so the trucks wouldn't get stopped by state troopers on Route 9.`
+      }
+    }
+  },
+  'records.northbridge-court.local': {
+    domain: 'records.northbridge-court.local',
+    name: 'Northbridge Municipal Court Records',
+    category: 'Legal',
+    icon: 'FileText',
+    isHttps: false,
+    pages: {
+      '/': {
+        url: 'http://records.northbridge-court.local/',
+        title: 'Northbridge Municipal Superior Court - Public Records Portal',
+        category: 'Legal',
+        content: `NORTHBRIDGE MUNICIPAL SUPERIOR COURT // PUBLIC RECORDS ACCESS SYSTEM
+Access probate, receivership, and civil dockets.`
+      },
+      '/cases/probate-1999': {
+        url: 'http://records.northbridge-court.local/cases/probate-1999',
+        title: 'In Re: Estate of Anna Claire Bell (PR-1999-0412)',
+        category: 'Legal',
+        content: `NORTHBRIDGE MUNICIPAL SUPERIOR COURT - PROBATE & RECEIVERSHIP DIVISION
+DOCKET NO. PR-1999-0412 // IN RE: ESTATE OF ANNA CLAIRE BELL (PRESUMPTION OF ABSENCE)
+DATE OF ENTRY: June 18, 1999
+PRESIDING: Hon. Evelyn Alvarez
+
+PETITIONER: Michael Thomas Bell (Brother / Administrator)
+SUMMARY OF PROCEEDINGS:
+1. Petitioner requests court authority to access sealed personal effects and leasehold premises of Anna Claire Bell, missing since September 14, 1998.
+2. Affidavit filed by Petitioner noting that key #44 to Canal Self-Storage locker was missing from recovered vehicle effects, and that facility records show locker was accessed by individual presenting police credentials in October 1998.
+3. Detective Bureau filed administrative motion to stay discovery regarding property records, citing ongoing open investigation (CASE-1998-027). Court granted temporary administrative seal.`
+      }
+    }
   }
 };

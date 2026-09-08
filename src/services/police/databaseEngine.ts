@@ -5,6 +5,12 @@ import {
   InvestigatorNote,
   InvestigationBookmark,
   InvestigationBoardState,
+  BoardNode,
+  BoardEdge,
+  BoardTimelineEvent,
+  EvidenceRecord,
+  CustodyTransfer,
+  ForensicReport,
   CaseRecord
 } from '../../types/police';
 import {
@@ -380,9 +386,121 @@ class DatabaseEngine {
     return this.boardState;
   }
 
+  public getBoardNodes(): BoardNode[] {
+    return this.boardState.nodes || [];
+  }
+
+  public getBoardEdges(): BoardEdge[] {
+    return this.boardState.edges || [];
+  }
+
+  public getBoardTimeline(): BoardTimelineEvent[] {
+    return this.boardState.timelineEvents || [];
+  }
+
   public updateBoardState(state: InvestigationBoardState) {
     this.boardState = state;
     this.notify();
+  }
+
+  public addBoardNode(node: BoardNode) {
+    const existingIdx = this.boardState.nodes.findIndex((n) => n.id === node.id);
+    if (existingIdx >= 0) {
+      this.boardState.nodes[existingIdx] = { ...this.boardState.nodes[existingIdx], ...node };
+    } else {
+      this.boardState.nodes.push(node);
+    }
+    this.notify();
+  }
+
+  public removeBoardNode(id: string) {
+    this.boardState.nodes = this.boardState.nodes.filter((n) => n.id !== id);
+    this.boardState.edges = this.boardState.edges.filter((e) => e.from !== id && e.to !== id);
+    this.notify();
+  }
+
+  public updateBoardNode(id: string, partial: Partial<BoardNode>) {
+    const node = this.boardState.nodes.find((n) => n.id === id);
+    if (node) {
+      Object.assign(node, partial);
+      this.notify();
+    }
+  }
+
+  public addBoardEdge(edge: BoardEdge) {
+    const existing = this.boardState.edges.find((e) => e.id === edge.id || (e.from === edge.from && e.to === edge.to));
+    if (existing) {
+      Object.assign(existing, edge);
+    } else {
+      this.boardState.edges.push(edge);
+    }
+    this.notify();
+  }
+
+  public removeBoardEdge(id: string) {
+    this.boardState.edges = this.boardState.edges.filter((e) => e.id !== id);
+    this.notify();
+  }
+
+  public addTimelineEvent(event: BoardTimelineEvent) {
+    if (!this.boardState.timelineEvents) {
+      this.boardState.timelineEvents = [];
+    }
+    this.boardState.timelineEvents.push(event);
+    this.notify();
+  }
+
+  public updateTimelineEvent(id: string, partial: Partial<BoardTimelineEvent>) {
+    if (!this.boardState.timelineEvents) return;
+    const ev = this.boardState.timelineEvents.find((e) => e.id === id);
+    if (ev) {
+      Object.assign(ev, partial);
+      this.notify();
+    }
+  }
+
+  public removeTimelineEvent(id: string) {
+    if (!this.boardState.timelineEvents) return;
+    this.boardState.timelineEvents = this.boardState.timelineEvents.filter((e) => e.id !== id);
+    this.notify();
+  }
+
+  // --- Evidence Management ---
+  public getEvidenceRecords(): EvidenceRecord[] {
+    return (this.recordsByType.get('evidence') || []) as EvidenceRecord[];
+  }
+
+  public addEvidence(evidence: EvidenceRecord): EvidenceRecord {
+    this.records.set(evidence.id, evidence);
+    const list = this.recordsByType.get('evidence') || [];
+    const idx = list.findIndex((e) => e.id === evidence.id);
+    if (idx >= 0) {
+      list[idx] = evidence;
+    } else {
+      list.push(evidence);
+    }
+    this.recordsByType.set('evidence', list);
+    this.notify();
+    return evidence;
+  }
+
+  public addCustodyTransfer(evidenceId: string, transfer: CustodyTransfer): boolean {
+    const ev = this.records.get(evidenceId) as EvidenceRecord | undefined;
+    if (!ev || ev.type !== 'evidence') return false;
+    ev.chainOfCustody = [...(ev.chainOfCustody || []), transfer];
+    ev.updatedAt = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    this.notify();
+    return true;
+  }
+
+  public addForensicReport(evidenceId: string, report: ForensicReport): boolean {
+    const ev = this.records.get(evidenceId) as EvidenceRecord | undefined;
+    if (!ev || ev.type !== 'evidence') return false;
+    ev.forensicReports = [...(ev.forensicReports || []), report];
+    ev.laboratoryStatus = report.status;
+    ev.updatedAt = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    this.notify();
+    return true;
   }
 
   // --- Record Update / Mutation (For Story Engine or In-App editing) ---

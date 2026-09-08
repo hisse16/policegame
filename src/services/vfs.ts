@@ -139,39 +139,79 @@ const INITIAL_NODES: VFSNode[] = [
     type: 'file',
     size: 1120,
     mimeType: 'text/plain',
-    createdAt: '2026-09-08 08:30:00',
-    updatedAt: '2026-09-08 08:30:00',
-    accessedAt: '2026-09-08 08:35:00',
+    createdAt: '2026-09-08 08:00:00',
+    updatedAt: '2026-09-08 08:00:00',
+    accessedAt: '2026-09-08 08:05:00',
     permissions: '-rw-r--r--',
     owner: 'investigator',
     group: 'investigator',
-    content: `METROPOLITAN POLICE DEPARTMENT
-COLD CASE HOMICIDE & SPECIAL INQUIRIES DIVISION
-MEMORANDUM // EYES ONLY // RESTRICTED
+    content: `NORTHBRIDGE POLICE DEPARTMENT
+ARCHIVE DIVISION // COLD CASE REVIEW SQUAD
+INTERNAL ASSIGNMENT MEMORANDUM
 
 DATE: September 8, 2026
-TO: Det. S. Miller (#4081), Cold Case Review Squad
-FROM: Capt. T. Vance, Commanding Officer, Detective Bureau
-SUBJECT: REOPENING OF DOCKET CASE-1998-027 (ANNA CLAIRE BELL)
+TO: Lead Investigator, Workstation #07
+FROM: Captain Arthur Vance, Supervising Investigator
+SUBJECT: CASE 27 — ARCHIVE REVIEW
 
-Detective Miller,
+Investigator,
 
-Pursuant to directive CCU-2026-09, the 1998 disappearance and presumed homicide 
-of Anna Claire Bell (D.O.B. 1974-06-12) has been officially unsealed and 
-assigned to your terminal for active inquiry.
+Case 27 is an old unresolved disappearance from September 1998. The subject, Anna Claire Bell (age 17), disappeared following her evening work shift at Bell Electronics. The docket has remained dormant in the archives for decades.
 
-INITIAL ACTION ITEMS:
-1. Launch the PRIS (Police Records & Investigation System) application from your dock or terminal.
-2. Review Docket CASE-1998-027 and witness depositions.
-3. Cross-reference persons of interest: Marcus Vance, David Hayes, and Evelyn Reed.
-4. Review physical evidence in Locker B-14 (EVD-1998-041 cassette, EVD-1998-042 keychain).
-5. Inspect impound logs for the 1991 Ford Taurus (Plate: TXR-481).
-6. Organize findings on the interactive Investigation Wall.
+This morning, a routine archive audit detected an unexplained post-closure modification on the primary case file (Report R-1998-112), dated June 3, 2004—years after the docket was officially archived. An attachment index was altered, but the referenced attachment was logged as NOT FOUND.
 
-Remember: Do not disclose active leads outside the secured intranet network.
-All updates must be logged into PRIS.
+You are assigned to review the original investigation.
+No assumptions should be made about what happened.
+Your initial task is to determine whether the archive discrepancy is meaningful.
 
-Capt. T. Vance (#1042)`
+Begin with the original case file: CASE-1998-027 in the PRIS database.
+
+Capt. A. Vance
+Commanding Officer, Archive Division`
+  },
+  {
+    id: 'f_archive_audit_discrepancy',
+    name: 'ARCHIVE_AUDIT_DISCREPANCY.txt',
+    path: '/home/investigator/Desktop/ARCHIVE_AUDIT_DISCREPANCY.txt',
+    type: 'file',
+    size: 980,
+    mimeType: 'text/plain',
+    createdAt: '2026-09-08 08:00:00',
+    updatedAt: '2026-09-08 08:00:00',
+    accessedAt: '2026-09-08 08:05:00',
+    permissions: '-rw-r--r--',
+    owner: 'investigator',
+    group: 'investigator',
+    content: `NORTHBRIDGE POLICE DEPARTMENT - ARCHIVE REPOSITORY
+==================================================
+ARCHIVE AUDIT DISCREPANCY NOTICE
+AUDIT ID: AUD-2026-09-08-0042
+DATE: September 8, 2026
+
+ARCHIVE AUDIT
+CASE: CASE-1998-027
+DOCUMENT: R-1998-112
+LAST MODIFIED: June 3, 2004 — 14:22:08
+MODIFIED BY: RECORDS ADMINISTRATION [TERMINAL ADM-04]
+CHANGE: ATTACHMENT INDEX UPDATED
+ATTACHMENT: NOT FOUND
+
+SUBJECT CASE SUMMARY:
+Victim: Anna Bell (Age: 17)
+Disappearance Date: September 14, 1998
+Last Known Sighting: Willow Street
+Original Status: Inactive Cold Case (Archived Jan 14, 1999)
+
+DISCREPANCY SUMMARY:
+A routine automated records audit identified that Report R-1998-112 was accessed
+and altered years after case closure. The attachment index was rewritten to purge
+the original exhibit reference. No judicial subpoena or reopening order was filed.
+
+TASK:
+Determine why an archived case was modified years after it was closed.
+Reconstruct the chain of evidence and identify any compromised findings.
+Begin with the original case file: CASE-1998-027.
+==================================================`
   },
   {
     id: 'f_case_notes',
@@ -525,6 +565,161 @@ Sep 08 02:15:07 workstation systemd[1]: Started User Manager for UID 1000 (inves
     content: `Sep 08 02:14:59 workstation login[720]: pam_unix(login:session): session opened for user investigator by (uid=0)
 Sep 08 02:15:00 workstation systemd-logind[640]: New session 1 of user investigator.
 Sep 08 02:15:01 workstation sudo: investigator : TTY=pts/0 ; PWD=/home/investigator ; USER=root ; COMMAND=/bin/dmesg`
+  },
+
+  // Archive & Audit Directory Structures
+  { id: 'dir_doc_archive', name: 'Archive', path: '/home/investigator/Documents/Archive', type: 'dir', size: 4096, mimeType: 'inode/directory', createdAt: '2026-09-08 00:00:00', updatedAt: '2026-09-08 02:00:00', accessedAt: '2026-09-08 02:00:00', permissions: 'drwxr-xr-x', owner: 'investigator', group: 'investigator' },
+  {
+    id: 'f_unindexed_depositions',
+    name: 'Unindexed_Depositions.txt',
+    path: '/home/investigator/Documents/Archive/Unindexed_Depositions.txt',
+    type: 'file',
+    size: 1640,
+    mimeType: 'text/plain',
+    createdAt: '2026-09-08 01:00:00',
+    updatedAt: '2026-09-08 01:00:00',
+    accessedAt: '2026-09-08 02:00:00',
+    permissions: '-rw-r--r--',
+    owner: 'investigator',
+    group: 'investigator',
+    content: `NORTHBRIDGE POLICE DEPARTMENT - ARCHIVE TRANSCRIPTION UNIT
+DEPOSITION EXCERPTS // RECOVERED FROM UNINDEXED PRE-TRIAL FOLDERS
+CASE CONTEXT: BELL ELECTRONICS / CROWNLINE LOGISTICS / CASE 27
+========================================================================
+DEPOSITION OF: Michael Bell (Brother of Victim / Warehouse Clerk)
+DATE OF RECORD: October 12, 1998
+INTERVIEWING OFFICER: Det. Daniel Hayes (#3014)
+
+Q: When was the last time Anna spoke to you about company paperwork?
+A: Three days before she disappeared. September 11. She was white as a sheet. She told me she found duplicate ledgers in the night dispatch office. Crownline Logistics was billing Bell Electronics for container movements that never appeared on the official shipping manifests.
+
+Q: Did she name anyone?
+A: She said Daniel Mercer was driving the night runs, and that whenever a Crownline truck arrived after 22:00, an unmarked police cruiser sat outside the loading gate. She wrote down the vehicle numbers in her personal ledger.
+
+Q: Where is that personal ledger now?
+A: She kept it in her locker at Canal Self-Storage, or in her briefcase. When her car was found abandoned on Canal Road, her briefcase was gone. And the storage locker key on her keychain was missing.
+
+Q: Did you mention this to anyone else?
+A: Only to Detective Hayes here. He told me he would personally secure the storage locker and that I shouldn't talk to the press or file an affidavit until he verified the logs.
+========================================================================`
+  },
+  {
+    id: 'f_redaction_diff',
+    name: 'Redaction_Diff_1998_112.txt',
+    path: '/home/investigator/Documents/Archive/Redaction_Diff_1998_112.txt',
+    type: 'file',
+    size: 1420,
+    mimeType: 'text/plain',
+    createdAt: '2026-09-08 01:00:00',
+    updatedAt: '2026-09-08 01:00:00',
+    accessedAt: '2026-09-08 02:00:00',
+    permissions: '-rw-r--r--',
+    owner: 'investigator',
+    group: 'investigator',
+    content: `ARCHIVE COMPARISON ANALYSIS: REPORT R-1998-112
+ORIGINAL MICROFILM DRAFT (1998) vs. DIGITIZED AUDIT RECORD (2004)
+========================================================================
+[-] 1998 ORIGINAL ARCHIVE DRAFT:
+    "ATTACHED EXHIBIT: ATT-1989-114A.
+     Reference: Internal Affairs Case IA-1989-114 (Allegations of off-duty
+     officers providing escort services for Crownline Logistics).
+     Investigator note: Victim was actively compiling audit of Crownline
+     waybills. Potential witness intimidation motive."
+
+[+] 2004 DIGITIZED RECORD (ALTERED):
+    "ATTACHED EXHIBIT: NOT FOUND.
+     [ENTRY EXPUNGED BY ADMINISTRATIVE ORDER // REF: REDACTED: IA_REFERENCE]
+     Investigator note: No further leads established. Victim presumed to have
+     walked away voluntarily."
+
+FORENSIC AUDIT NOTE:
+The 2004 modification deliberately stripped the reference to Internal Affairs
+inquiry IA-1989-114 and suppressed the Crownline Logistics connection.
+Authorized by: Captain Arthur Vance / Executed under administrative login ADM-04.
+========================================================================`
+  },
+
+  // /var/log/audit
+  { id: 'var_log_audit', name: 'audit', path: '/var/log/audit', type: 'dir', size: 4096, mimeType: 'inode/directory', createdAt: '2026-09-08 00:00:00', updatedAt: '2026-09-08 02:00:00', accessedAt: '2026-09-08 02:00:00', permissions: 'drwxr-xr-x', owner: 'root', group: 'root' },
+  {
+    id: 'f_audit_dispatch_log',
+    name: 'dispatch_19980914.log',
+    path: '/var/log/audit/dispatch_19980914.log',
+    type: 'file',
+    size: 1980,
+    mimeType: 'text/plain',
+    createdAt: '2026-09-08 01:00:00',
+    updatedAt: '2026-09-08 01:00:00',
+    accessedAt: '2026-09-08 02:00:00',
+    permissions: '-rw-r--r--',
+    owner: 'root',
+    group: 'adm',
+    content: `CAD INCIDENT LOG // NORTHBRIDGE POLICE DEPT // 1998-09-14
+========================================================================
+[21:10:04] UNIT 102 (Patrol West): Clear from 14th Ave traffic stop.
+[21:44:18] CAD-DISP: 911 line active. Caller: Michael Bell. Reports sister Anna Bell overdue from Bell Electronics. Advised to verify residential address first.
+[22:15:02] UNIT 304 (Det. Daniel Hayes): Logged en route to 4th District patrol division.
+[22:17:30] CAD-DISP: 911 Call #98-4412 logged. Reporting party Martha Gable (40 Willow St): heard engine revving and sharp braking in alley between 40 and 42 Willow St.
+[22:20:11] DISPATCH TO UNIT 304: Unit 304, advise if in vicinity of Willow St.
+[22:21:40] UNIT 304: Copy dispatch, in transit on Commercial Way, 5 minutes out.
+[22:31:05] [TRANSMISSION INTERRUPTED // FREQUENCY HOP // UNINDEXED CAD BURST]
+[22:40:15] UNIT 304 (Hayes): On scene at 42 Willow St. Driveway clear. Front door locked. Canvassing perimeter.
+[22:41:22] CAD-DISP [INC-1998-0915]: Radio transmission from Unit 304: Dark mid-sized sedan observed turning onto Canal Road frontage. Plate unverified in rain. Unit 304 clearing scene to file preliminary report.
+[22:52:10] STATION GATE LOG: Vehicle 304 (Hayes unmarked Caprice) clocked at Central Station security barrier.
+[23:04:15] SGT. MERCER: Observed Unit 304 vehicle depart rear garage bay unattended.
+========================================================================`
+  },
+  {
+    id: 'f_audit_trail_2004',
+    name: 'audit_trail_2004.log',
+    path: '/var/log/audit/audit_trail_2004.log',
+    type: 'file',
+    size: 1540,
+    mimeType: 'text/plain',
+    createdAt: '2026-09-08 01:00:00',
+    updatedAt: '2026-09-08 01:00:00',
+    accessedAt: '2026-09-08 02:00:00',
+    permissions: '-rw-r--r--',
+    owner: 'root',
+    group: 'adm',
+    content: `ARCHIVE SYSTEM AUDIT LOG // YEAR 2004
+SYSTEM: VAX/VMS MUNICIPAL ARCHIVE NODE 04
+========================================================================
+[2004-06-03 14:15:22] USER: ADM-04 [RECORDS ADMINISTRATION] LOGGED IN
+[2004-06-03 14:17:01] QUERY: SELECT DOCKET WHERE CASE_ID='CASE-1998-027'
+[2004-06-03 14:18:44] DOCKET FETCHED: 14 RECORDS, 3 ATTACHMENTS
+[2004-06-03 14:20:12] OPEN DOCUMENT: R-1998-112 (AUTHOR: DET. D. HAYES)
+[2004-06-03 14:21:55] OVERRIDE AUTH: SUPERVISORY BYPASS (TOKEN: SEC-VANCE-89)
+[2004-06-03 14:22:08] ACTION: MODIFY ATTACHMENT INDEX
+                     TARGET: ATT-1989-114A (INTERNAL AFFAIRS CROSS-REFERENCE)
+                     NEW STATUS: NOT FOUND / PURGED FROM ACTIVE INDICES
+[2004-06-03 14:23:30] AUDIT HASH GENERATED: #C27-MOD-20040603-918
+[2004-06-03 14:25:00] USER ADM-04 LOGGED OUT.
+========================================================================`
+  },
+  {
+    id: 'f_vault_access_log',
+    name: 'evidence_vault_access.log',
+    path: '/var/log/audit/evidence_vault_access.log',
+    type: 'file',
+    size: 1680,
+    mimeType: 'text/plain',
+    createdAt: '2026-09-08 01:00:00',
+    updatedAt: '2026-09-08 01:00:00',
+    accessedAt: '2026-09-08 02:00:00',
+    permissions: '-rw-r--r--',
+    owner: 'root',
+    group: 'adm',
+    content: `NORTHBRIDGE POLICE DEPARTMENT // CENTRAL EVIDENCE VAULT B ACCESS LOG
+CASE DOCKET REF: CASE-1998-027 (ANNA CLAIRE BELL)
+LOCKER ASSIGNED: VAULT-B-LOCKER-44
+========================================================================
+1998-10-04 11:20:00 | CHECK-IN | Det. D. Hayes (#3014) | Items E-004821 through E-004823 entered into evidence. Signed: D. Hayes.
+1998-11-19 15:40:00 | REVIEW   | Det. D. Hayes (#3014) | Casework review. No items removed. Signed: D. Hayes.
+2004-06-03 14:45:10 | OVERRIDE | Capt. A. Vance (#1012) | Vault inspection pursuant to departmental archive reorganization.
+2008-04-12 16:10:00 | ACCESS   | Det. D. Hayes (#3014) | Locker 44 opened. Item logged: Personal effects review. Co-signer: NONE (FLAGGED).
+2008-04-14 09:00:00 | NOTICE   | Internal Audit: Physical cassette tape from E-004821 flagged missing from container. Hayes tendered resignation 48h later.
+========================================================================`
   }
 ];
 
@@ -543,6 +738,12 @@ class VirtualFileSystem {
         const parsed: VFSNode[] = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
           parsed.forEach((n) => this.nodes.set(n.path, n));
+          // Always ensure INITIAL_NODES exist if missing from stored
+          INITIAL_NODES.forEach((n) => {
+            if (!this.nodes.has(n.path)) {
+              this.nodes.set(n.path, { ...n });
+            }
+          });
           return;
         }
       }

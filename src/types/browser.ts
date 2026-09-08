@@ -62,7 +62,7 @@ export interface NewsArticle {
   author: string;
   authorRole: string;
   date: string;
-  category: 'Local' | 'National' | 'Tech' | 'Business' | 'Sports' | 'Opinion' | 'Culture';
+  category: 'Local' | 'National' | 'Tech' | 'Business' | 'Sports' | 'Opinion' | 'Culture' | 'Archive';
   readTime: string;
   leadParagraph: string;
   bodyParagraphs: string[];

@@ -208,17 +208,74 @@ export interface IncidentRecord extends BaseRecord {
   narrative: string;
 }
 
+export interface ForensicReport {
+  id: string;
+  type?:
+    | 'DNA'
+    | 'FINGERPRINT'
+    | 'DOCUMENT'
+    | 'DIGITAL'
+    | 'VEHICLE'
+    | 'TRACE'
+    | 'BALLISTICS'
+    | 'AUDIO'
+    | 'CHEMICAL'
+    | 'GENERAL'
+    | string;
+  reportType?: string;
+  title: string;
+  laboratory?: string;
+  labName?: string;
+  technician?: string;
+  analystName?: string;
+  submissionDate?: string;
+  completionDate?: string;
+  dateConducted?: string;
+  status: 'COMPLETED' | 'PENDING' | 'INCONCLUSIVE' | 'INSUFFICIENT_SAMPLE';
+  confidenceRating?: string;
+  confidenceScore?: number;
+  comparisonTarget?: string;
+  comparisonReference?: string;
+  methodology?: string;
+  findings: string;
+  notes?: string;
+  details?: Record<string, any>;
+}
+
+export interface EvidencePhoto {
+  id: string;
+  photoNumber: string;
+  caption: string;
+  timestamp: string;
+  photographer: string;
+  location: string;
+  azimuth?: string;
+  svgData?: string;
+  url?: string;
+  tags?: string[];
+}
+
 export interface EvidenceRecord extends BaseRecord {
   type: 'evidence';
-  evidenceId: string; // e.g. E-004821
+  evidenceId: string; // e.g. E-004821 or EV-1998-027-014
   caseId: string;
   incidentId?: string;
   evidenceType: string; // e.g. Physical, Digital, Ballistics, Document, Biological
   description: string;
   collectedByOfficerId: string;
   collectionDate: string;
+  collectionTime?: string;
   collectionLocation: string;
   storageLocation: string; // e.g. Vault B, Locker 14
+  submittedBy?: string;
+  currentStatus?: string; // IN_STORAGE, CHECKED_OUT, ARCHIVED, EXAMINED, CORRUPTED, DESTROYED, MISSING, RELEASED
+  laboratoryStatus?:
+    | 'NOT_REQUESTED'
+    | 'SCHEDULED'
+    | 'PENDING'
+    | 'COMPLETED'
+    | 'INCONCLUSIVE'
+    | 'INSUFFICIENT_SAMPLE';
   chainOfCustody: CustodyTransfer[];
   labAnalysis?: {
     laboratory: string;
@@ -226,8 +283,20 @@ export interface EvidenceRecord extends BaseRecord {
     technician: string;
     results: string;
   };
-  relatedPersonIds: string[];
+  forensicReports?: ForensicReport[];
+  photos?: EvidencePhoto[];
+  relatedPersonIds?: string[];
   relatedVehicleId?: string;
+  relatedVehicleIds?: string[];
+  relatedLocationIds?: string[];
+  relatedReportIds?: string[];
+  relatedIncidentIds?: string[];
+  relatedCaseIds?: string[];
+  discrepancyFlag?: string;
+  isArchived?: boolean;
+  notes?: string;
+  status?: string;
+  tags?: string[];
 }
 
 export interface VehicleRecord extends BaseRecord {
@@ -403,28 +472,107 @@ export interface InvestigationBookmark {
   folder?: string;
 }
 
+export type BoardNodeType =
+  | 'person'
+  | 'case'
+  | 'incident'
+  | 'evidence'
+  | 'vehicle'
+  | 'officer'
+  | 'report'
+  | 'location'
+  | 'organization'
+  | 'warrant'
+  | 'note'
+  | 'question'
+  | 'hypothesis'
+  | 'event'
+  | 'date'
+  | 'analysis'
+  | 'record';
+
 export interface BoardNode {
   id: string;
   recordId?: string;
   recordType?: RecordType;
+  nodeType?: BoardNodeType;
   label: string;
   subtitle?: string;
   x: number;
   y: number;
   color?: string;
   noteText?: string;
+  evidenceId?: string;
+  photoUrl?: string;
+  // Question fields
+  questionStatus?: 'OPEN' | 'RESOLVED';
+  // Hypothesis fields
+  hypothesisStatus?: 'OPEN' | 'SUPPORTED' | 'WEAKENED' | 'DISPROVEN' | 'UNRESOLVED';
+  confidenceScore?: number; // 0 - 100
+  supportingRecordIds?: string[];
+  contradictingRecordIds?: string[];
+  // Event / Date fields
+  date?: string;
+  time?: string;
+  isPinned?: boolean;
 }
+
+export type ConnectionRelation =
+  | 'knew'
+  | 'related to'
+  | 'owned'
+  | 'employed by'
+  | 'witnessed'
+  | 'contacted'
+  | 'located at'
+  | 'associated with'
+  | 'referenced by'
+  | 'collected from'
+  | 'transferred to'
+  | 'contradicts'
+  | 'supports'
+  | 'occurred before'
+  | 'occurred after'
+  | 'possibly connected to'
+  | string;
 
 export interface BoardEdge {
   id: string;
   from: string;
   to: string;
   label: string;
+  relationType?: ConnectionRelation;
+  isContradiction?: boolean;
+  isSupport?: boolean;
+  notes?: string;
+}
+
+export interface BoardTimelineEvent {
+  id: string;
+  date: string;
+  time?: string;
+  title: string;
+  description: string;
+  sourceRecordId?: string;
+  sourceRecordType?: RecordType;
+  relatedRecordId?: string;
+  nodeId?: string;
+  reliability: 'VERIFIED' | 'QUESTIONABLE' | 'CONTRADICTED' | 'UNCONFIRMED' | 'UNVERIFIED';
+  hasContradiction?: boolean;
+  contradictionWithEventId?: string;
+  contradictionNote?: string;
 }
 
 export interface InvestigationBoardState {
+  id?: string;
+  title?: string;
   nodes: BoardNode[];
   edges: BoardEdge[];
+  timelineEvents?: BoardTimelineEvent[];
+  viewMode?: 'board' | 'timeline';
+  zoom?: number;
+  pan?: { x: number; y: number };
+  lastSaved?: string;
 }
 
 export interface SearchQuery {

@@ -20,6 +20,16 @@ import {
   INVESTIGATION_LEADS,
   FINAL_DEDUCTION_SOLUTION
 } from './storyData';
+import {
+  EvidenceRecord,
+  ForensicReport,
+  CustodyTransfer,
+  BoardNode,
+  BoardEdge,
+  BoardTimelineEvent,
+  InvestigationBoardState
+} from '../../types/police';
+import { policeDatabase } from '../police/databaseEngine';
 
 const STORAGE_KEY = 'investigator_os_story_state_v1';
 
@@ -161,11 +171,15 @@ class StoryEngine {
   // ================= ACTION HANDLERS =================
 
   public onViewRecord(recordId: string): void {
+    if (!recordId) return;
     let changed = false;
+    const cleanId = recordId.toLowerCase().trim();
+
     DISCOVERY_STEPS.forEach((step) => {
       if (
         step.trigger.type === 'view_record' &&
-        step.trigger.targetId?.toLowerCase() === recordId.toLowerCase() &&
+        step.trigger.targetId &&
+        (step.trigger.targetId.toLowerCase() === cleanId || cleanId.includes(step.trigger.targetId.toLowerCase())) &&
         !this.state.discoveredStepIds.includes(step.id)
       ) {
         this.executeStep(step);
@@ -174,6 +188,7 @@ class StoryEngine {
     });
 
     if (changed) {
+      this.checkStepTriggers();
       this.checkActProgression();
       this.notify();
     }
@@ -197,12 +212,14 @@ class StoryEngine {
     });
 
     if (changed) {
+      this.checkStepTriggers();
       this.checkActProgression();
       this.notify();
     }
   }
 
   public onViewWebpage(url: string): void {
+    if (!url) return;
     let changed = false;
     const cleanUrl = url.toLowerCase().trim();
 
@@ -210,21 +227,26 @@ class StoryEngine {
       if (
         step.trigger.type === 'view_webpage' &&
         step.trigger.targetId &&
-        cleanUrl.includes(step.trigger.targetId.toLowerCase()) &&
         !this.state.discoveredStepIds.includes(step.id)
       ) {
-        this.executeStep(step);
-        changed = true;
+        const target = step.trigger.targetId.toLowerCase();
+        const targetSlug = target.split('/').filter(Boolean).pop();
+        if (cleanUrl.includes(target) || (targetSlug && cleanUrl.includes(targetSlug))) {
+          this.executeStep(step);
+          changed = true;
+        }
       }
     });
 
     if (changed) {
+      this.checkStepTriggers();
       this.checkActProgression();
       this.notify();
     }
   }
 
   public onViewFile(filePath: string): void {
+    if (!filePath) return;
     let changed = false;
     const cleanPath = filePath.toLowerCase().trim();
 
@@ -232,7 +254,7 @@ class StoryEngine {
       if (
         step.trigger.type === 'view_file' &&
         step.trigger.targetId &&
-        cleanPath.endsWith(step.trigger.targetId.toLowerCase()) &&
+        (cleanPath.endsWith(step.trigger.targetId.toLowerCase()) || cleanPath.includes(step.trigger.targetId.toLowerCase())) &&
         !this.state.discoveredStepIds.includes(step.id)
       ) {
         this.executeStep(step);
@@ -241,26 +263,34 @@ class StoryEngine {
     });
 
     if (changed) {
+      this.checkStepTriggers();
       this.checkActProgression();
       this.notify();
     }
   }
 
   private checkStepTriggers(): void {
-    DISCOVERY_STEPS.forEach((step) => {
-      if (
-        step.trigger.type === 'flag' &&
-        step.trigger.targetId &&
-        this.hasFlag(step.trigger.targetId) &&
-        !this.state.discoveredStepIds.includes(step.id)
-      ) {
-        if (step.trigger.requiredFlags) {
-          const allMet = step.trigger.requiredFlags.every((f) => this.hasFlag(f));
-          if (!allMet) return;
+    let triggeredAny = false;
+    let loopCount = 0;
+    do {
+      triggeredAny = false;
+      loopCount++;
+      DISCOVERY_STEPS.forEach((step) => {
+        if (
+          step.trigger.type === 'flag' &&
+          step.trigger.targetId &&
+          this.hasFlag(step.trigger.targetId) &&
+          !this.state.discoveredStepIds.includes(step.id)
+        ) {
+          if (step.trigger.requiredFlags) {
+            const allMet = step.trigger.requiredFlags.every((f) => this.hasFlag(f));
+            if (!allMet) return;
+          }
+          this.executeStep(step);
+          triggeredAny = true;
         }
-        this.executeStep(step);
-      }
-    });
+      });
+    } while (triggeredAny && loopCount < 10);
   }
 
   private executeStep(step: DiscoveryStep): void {
@@ -461,9 +491,9 @@ class StoryEngine {
     const whoCorrect = sub.whoSuspectId.toUpperCase() === sol.whoSuspectId;
     const whatCorrect = sub.whatCrimeType.toUpperCase().includes('HOMICIDE') || sub.whatCrimeType.toUpperCase().includes('ABDUCTION');
     const whenCorrect = sub.whenDate.includes('1998-09-14');
-    const whereCorrect = sub.whereLocationId === sol.whereLocationId || sub.whereLocationId === 'LOC-0400';
-    const whyCorrect = sub.whyMotive.toUpperCase().includes('AUDIT') || sub.whyMotive.toUpperCase().includes('THEFT') || sub.whyMotive.toUpperCase().includes('CROWNLINE');
-    const howCorrect = sub.howMethod.toUpperCase().includes('PULLOVER') || sub.howMethod.toUpperCase().includes('PATROL') || sub.howMethod.toUpperCase().includes('CAR');
+    const whereCorrect = sub.whereLocationId === sol.whereLocationId || sub.whereLocationId === 'LOC-0400' || sub.whereLocationId === 'LOC-0042' || sub.whereLocationId === 'LOC-WILLOW42';
+    const whyCorrect = sub.whyMotive.toUpperCase().includes('AUDIT') || sub.whyMotive.toUpperCase().includes('THEFT') || sub.whyMotive.toUpperCase().includes('CROWNLINE') || sub.whyMotive.toUpperCase().includes('SILENCE');
+    const howCorrect = sub.howMethod.toUpperCase().includes('PULLOVER') || sub.howMethod.toUpperCase().includes('PATROL') || sub.howMethod.toUpperCase().includes('CAR') || sub.howMethod.toUpperCase().includes('INTERCEPTION');
 
     // Calculate evidence overlap
     const matchedEvidence = sub.keyEvidenceIds.filter((e) => sol.keyEvidenceIds.includes(e));
@@ -519,6 +549,292 @@ class StoryEngine {
         ? 'DOCKET CASE-1998-027 OFFICIALLY CONCLUDED. All findings referred to the State Attorney General Special Prosecutions Unit for arrest warrants.'
         : 'INSUFFICIENT PROBABLE CAUSE. Review conflicting timestamps, physical evidence items, and internal affairs dockets before re-submitting.'
     };
+  }
+
+  // ================= EVIDENCE LAB API =================
+
+  public createEvidence(evidenceData: Partial<EvidenceRecord>): EvidenceRecord {
+    const id = evidenceData.id || `E-${Date.now().toString().slice(-6)}`;
+    const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    const newRecord: EvidenceRecord = {
+      id,
+      type: 'evidence',
+      title: evidenceData.title || `Evidence Item ${id}`,
+      evidenceId: evidenceData.evidenceId || id,
+      caseId: evidenceData.caseId || 'CASE-1998-027',
+      evidenceType: evidenceData.evidenceType || 'Physical',
+      description: evidenceData.description || 'Newly indexed evidence item.',
+      collectedByOfficerId: evidenceData.collectedByOfficerId || 'OFF-4081',
+      collectionDate: evidenceData.collectionDate || now.split(' ')[0],
+      collectionTime: evidenceData.collectionTime || now.split(' ')[1],
+      collectionLocation: evidenceData.collectionLocation || 'Evidence Receiving Intake',
+      storageLocation: evidenceData.storageLocation || 'Vault B',
+      status: evidenceData.status || 'IN_STORAGE',
+      currentStatus: evidenceData.currentStatus || 'IN_STORAGE',
+      laboratoryStatus: evidenceData.laboratoryStatus || 'NOT_REQUESTED',
+      chainOfCustody: evidenceData.chainOfCustody || [
+        {
+          id: `cust_${Date.now()}`,
+          timestamp: now,
+          action: 'Initial Intake Logging',
+          fromOfficerOrLocation: 'Field Intake',
+          toOfficerOrLocation: 'Evidence Vault',
+          reason: 'Initial storage'
+        }
+      ],
+      relatedPersonIds: evidenceData.relatedPersonIds || [],
+      tags: evidenceData.tags || ['EVIDENCE_INTAKE'],
+      createdAt: now,
+      updatedAt: now,
+      ...evidenceData
+    };
+
+    policeDatabase.addEvidence(newRecord);
+    this.onViewRecord(newRecord.id);
+    return newRecord;
+  }
+
+  public updateEvidence(id: string, partial: Partial<EvidenceRecord>): EvidenceRecord | null {
+    const updated = policeDatabase.updateRecord(id, partial, 'Det. S. Miller (#4081)', 'Updated evidence metadata');
+    if (updated) {
+      this.checkStepTriggers();
+      this.checkActProgression();
+      this.notify();
+    }
+    return updated as EvidenceRecord | null;
+  }
+
+  public revealEvidence(id: string): void {
+    const rec = policeDatabase.getRecord(id) as EvidenceRecord | null;
+    if (rec) {
+      policeDatabase.updateRecord(id, { status: 'IN_STORAGE', currentStatus: 'IN_STORAGE' } as any);
+      this.onViewRecord(id);
+    }
+  }
+
+  public hideEvidence(id: string): void {
+    policeDatabase.updateRecord(id, { status: 'ARCHIVED', currentStatus: 'ARCHIVED' } as any);
+  }
+
+  public archiveEvidence(id: string): void {
+    policeDatabase.updateRecord(id, { status: 'ARCHIVED', isArchived: true, currentStatus: 'ARCHIVED' } as any);
+  }
+
+  public addEvidenceAnalysis(evidenceId: string, analysis: ForensicReport): void {
+    policeDatabase.addForensicReport(evidenceId, analysis);
+    this.setFlag(`analyzed_${evidenceId.toLowerCase()}`, true);
+    this.setFlag(`forensic_${analysis.id.toLowerCase()}`, true);
+    this.checkStepTriggers();
+    this.checkActProgression();
+    this.notify();
+  }
+
+  public addCustodyEvent(evidenceId: string, event: CustodyTransfer): void {
+    policeDatabase.addCustodyTransfer(evidenceId, event);
+    this.setFlag(`custody_updated_${evidenceId.toLowerCase()}`, true);
+    this.checkStepTriggers();
+    this.checkActProgression();
+    this.notify();
+  }
+
+  public modifyCustodyEvent(evidenceId: string, eventId: string, partial: Partial<CustodyTransfer>): void {
+    const rec = policeDatabase.getRecord(evidenceId) as EvidenceRecord | null;
+    if (rec && rec.chainOfCustody) {
+      const target = rec.chainOfCustody.find((c) => c.id === eventId);
+      if (target) {
+        Object.assign(target, partial);
+        policeDatabase.updateRecord(evidenceId, { chainOfCustody: [...rec.chainOfCustody] }, 'Auditor', 'Modified custody log');
+      }
+    }
+  }
+
+  public linkEvidence(evidenceId: string, targetType: 'case' | 'person' | 'vehicle' | 'report' | 'location', targetId: string): void {
+    const rec = policeDatabase.getRecord(evidenceId) as EvidenceRecord | null;
+    if (!rec) return;
+
+    if (targetType === 'person' && !rec.relatedPersonIds.includes(targetId)) {
+      rec.relatedPersonIds = [...rec.relatedPersonIds, targetId];
+    } else if (targetType === 'vehicle') {
+      rec.relatedVehicleId = targetId;
+      rec.relatedVehicleIds = Array.from(new Set([...(rec.relatedVehicleIds || []), targetId]));
+    } else if (targetType === 'case') {
+      rec.relatedCaseIds = Array.from(new Set([...(rec.relatedCaseIds || []), targetId]));
+    } else if (targetType === 'report') {
+      rec.relatedReportIds = Array.from(new Set([...(rec.relatedReportIds || []), targetId]));
+    } else if (targetType === 'location') {
+      rec.relatedLocationIds = Array.from(new Set([...(rec.relatedLocationIds || []), targetId]));
+    }
+
+    policeDatabase.updateRecord(evidenceId, rec, 'Investigator', `Linked ${targetType} ${targetId}`);
+  }
+
+  public unlinkEvidence(evidenceId: string, targetType: 'case' | 'person' | 'vehicle' | 'report' | 'location', targetId: string): void {
+    const rec = policeDatabase.getRecord(evidenceId) as EvidenceRecord | null;
+    if (!rec) return;
+
+    if (targetType === 'person') {
+      rec.relatedPersonIds = rec.relatedPersonIds.filter((id) => id !== targetId);
+    } else if (targetType === 'vehicle') {
+      rec.relatedVehicleIds = (rec.relatedVehicleIds || []).filter((id) => id !== targetId);
+      if (rec.relatedVehicleId === targetId) rec.relatedVehicleId = undefined;
+    } else if (targetType === 'case') {
+      rec.relatedCaseIds = (rec.relatedCaseIds || []).filter((id) => id !== targetId);
+    } else if (targetType === 'report') {
+      rec.relatedReportIds = (rec.relatedReportIds || []).filter((id) => id !== targetId);
+    } else if (targetType === 'location') {
+      rec.relatedLocationIds = (rec.relatedLocationIds || []).filter((id) => id !== targetId);
+    }
+
+    policeDatabase.updateRecord(evidenceId, rec, 'Investigator', `Unlinked ${targetType} ${targetId}`);
+  }
+
+  // ================= INVESTIGATION BOARD API =================
+
+  public createBoard(title?: string): InvestigationBoardState {
+    const newBoard: InvestigationBoardState = {
+      id: `board_${Date.now()}`,
+      title: title || 'Case 27 Investigation Board',
+      nodes: [],
+      edges: [],
+      timelineEvents: [],
+      viewMode: 'board',
+      zoom: 1,
+      pan: { x: 0, y: 0 },
+      lastSaved: new Date().toISOString()
+    };
+    policeDatabase.updateBoardState(newBoard);
+    return newBoard;
+  }
+
+  public saveBoard(boardState: InvestigationBoardState): void {
+    policeDatabase.updateBoardState(boardState);
+    this.notify();
+  }
+
+  public createBoardNode(node: Partial<BoardNode>): BoardNode {
+    const id = node.id || `bn_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    const completeNode: BoardNode = {
+      id,
+      label: node.label || 'UNTITLED NODE',
+      x: node.x ?? (200 + Math.random() * 300),
+      y: node.y ?? (150 + Math.random() * 200),
+      color: node.color || '#3b82f6',
+      ...node
+    };
+    policeDatabase.addBoardNode(completeNode);
+    return completeNode;
+  }
+
+  public removeBoardNode(nodeId: string): void {
+    policeDatabase.removeBoardNode(nodeId);
+  }
+
+  public moveBoardNode(nodeId: string, x: number, y: number): void {
+    policeDatabase.updateBoardNode(nodeId, { x, y });
+  }
+
+  public createBoardConnection(
+    from: string,
+    to: string,
+    label: string,
+    relationType: string = 'associated with',
+    isContradiction: boolean = false,
+    isSupport: boolean = false
+  ): BoardEdge {
+    const edge: BoardEdge = {
+      id: `edge_${from}_${to}_${Date.now()}`,
+      from,
+      to,
+      label,
+      relationType,
+      isContradiction,
+      isSupport
+    };
+    policeDatabase.addBoardEdge(edge);
+
+    // If this connection links key case nodes, check if a contradiction or clue is discovered!
+    const board = policeDatabase.getBoardState();
+    const sourceNode = board.nodes.find((n) => n.id === from);
+    const targetNode = board.nodes.find((n) => n.id === to);
+    if (sourceNode?.recordId && targetNode?.recordId) {
+      this.setFlag(`connected_${sourceNode.recordId}_${targetNode.recordId}`, true);
+      this.setFlag(`connected_${targetNode.recordId}_${sourceNode.recordId}`, true);
+      this.checkStepTriggers();
+      this.checkActProgression();
+      this.notify();
+    }
+
+    return edge;
+  }
+
+  public removeBoardConnection(edgeId: string): void {
+    policeDatabase.removeBoardEdge(edgeId);
+  }
+
+  public createInvestigationNote(title: string, content: string, x?: number, y?: number): BoardNode {
+    return this.createBoardNode({
+      label: title.toUpperCase(),
+      noteText: content,
+      nodeType: 'note',
+      color: '#eab308',
+      x: x ?? (150 + Math.random() * 200),
+      y: y ?? (150 + Math.random() * 200)
+    });
+  }
+
+  public createInvestigationQuestion(question: string, status: 'OPEN' | 'RESOLVED' = 'OPEN', x?: number, y?: number): BoardNode {
+    return this.createBoardNode({
+      label: 'INVESTIGATIVE QUESTION',
+      noteText: question,
+      nodeType: 'question',
+      questionStatus: status,
+      color: status === 'RESOLVED' ? '#10b981' : '#f97316',
+      x: x ?? (150 + Math.random() * 200),
+      y: y ?? (150 + Math.random() * 200)
+    });
+  }
+
+  public createHypothesis(
+    title: string,
+    summary: string,
+    status: 'OPEN' | 'SUPPORTED' | 'WEAKENED' | 'DISPROVEN' | 'UNRESOLVED' = 'OPEN',
+    confidence: number = 50
+  ): BoardNode {
+    return this.createBoardNode({
+      label: `HYPOTHESIS: ${title.toUpperCase()}`,
+      noteText: summary,
+      nodeType: 'hypothesis',
+      hypothesisStatus: status,
+      confidenceScore: confidence,
+      color: status === 'SUPPORTED' ? '#22c55e' : status === 'DISPROVEN' ? '#ef4444' : '#a855f7',
+      x: 350 + Math.random() * 100,
+      y: 200 + Math.random() * 100
+    });
+  }
+
+  public updateHypothesis(nodeId: string, partial: Partial<BoardNode>): void {
+    policeDatabase.updateBoardNode(nodeId, partial);
+    this.notify();
+  }
+
+  public addTimelineEvent(event: Partial<BoardTimelineEvent>): BoardTimelineEvent {
+    const newEvent: BoardTimelineEvent = {
+      id: event.id || `tle_${Date.now()}`,
+      date: event.date || '1998-09-14',
+      time: event.time || '22:00:00',
+      title: event.title || 'Timeline Milestone',
+      description: event.description || '',
+      reliability: event.reliability || 'VERIFIED',
+      ...event
+    };
+    policeDatabase.addTimelineEvent(newEvent);
+    this.notify();
+    return newEvent;
+  }
+
+  public updateTimelineEvent(eventId: string, partial: Partial<BoardTimelineEvent>): void {
+    policeDatabase.updateTimelineEvent(eventId, partial);
+    this.notify();
   }
 }
 

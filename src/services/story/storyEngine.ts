@@ -26,17 +26,144 @@ class StoryEngine {
   public getCurrentAct(): StoryAct { return STORY_ACTS.find((a) => a.id === this.state.currentAct) || STORY_ACTS[0]; }
   public getAllActs(): StoryAct[] { return STORY_ACTS; }
   public hasFlag(flag: string): boolean { return Boolean(this.state.flags[flag]); }
-  public setFlag(flag: string, value = true): void { if (this.state.flags[flag] !== value) { this.state.flags[flag] = value; this.checkStepTriggers(); this.checkActProgression(); this.notify(); } }
+
+  public setFlag(flag: string, value = true): void {
+    if (this.state.flags[flag] !== value) {
+      this.state.flags[flag] = value;
+      this.checkStepTriggers();
+      this.checkAct6SynthesisTriggers();
+      this.checkActProgression();
+      this.notify();
+    }
+  }
+
   private isSearchMatch(clean: string, searchTerm: string): boolean { const needle = searchTerm.toLowerCase().trim(); if (!needle) return false; if (needle.includes(' ')) return clean.includes(needle); const escaped = needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); return new RegExp(`\\b${escaped}\\b`, 'i').test(clean); }
-  private executeMatchingSteps(predicate: (step: DiscoveryStep) => boolean): boolean { let changed = false; DISCOVERY_STEPS.forEach((step) => { if (predicate(step) && !this.state.discoveredStepIds.includes(step.id)) { this.executeStep(step); changed = true; } }); if (changed) { this.checkStepTriggers(); this.checkActProgression(); this.notify(); } return changed; }
-  public onViewRecord(recordId: string): void { if (!recordId) return; const cleanId = recordId.toLowerCase().trim(); this.executeMatchingSteps((step) => step.act <= this.state.currentAct && step.trigger.type === 'view_record' && Boolean(step.trigger.targetId) && step.trigger.targetId!.toLowerCase().trim() === cleanId); }
-  public onSearchTerm(term: string): void { if (!term || term.trim().length < 2) return; const clean = term.toLowerCase().trim(); this.executeMatchingSteps((step) => step.act <= this.state.currentAct && step.trigger.type === 'search_term' && Boolean(step.trigger.searchTerm) && this.isSearchMatch(clean, step.trigger.searchTerm!)); }
-  public onViewWebpage(url: string): void { if (!url) return; const cleanUrl = url.toLowerCase().trim(); this.executeMatchingSteps((step) => { if (step.act > this.state.currentAct || step.trigger.type !== 'view_webpage' || !step.trigger.targetId) return false; const target = step.trigger.targetId.toLowerCase(); const targetSlug = target.split('/').filter(Boolean).pop(); return cleanUrl.includes(target) || Boolean(targetSlug && cleanUrl.includes(targetSlug)); }); }
-  public onViewFile(filePath: string): void { if (!filePath) return; const cleanPath = filePath.toLowerCase().trim(); this.executeMatchingSteps((step) => step.act <= this.state.currentAct && step.trigger.type === 'view_file' && Boolean(step.trigger.targetId) && (cleanPath.endsWith(step.trigger.targetId!.toLowerCase()) || cleanPath.includes(step.trigger.targetId!.toLowerCase()))); }
+
+  private executeMatchingSteps(predicate: (step: DiscoveryStep) => boolean): boolean {
+    let changed = false;
+    DISCOVERY_STEPS.forEach((step) => { if (predicate(step) && !this.state.discoveredStepIds.includes(step.id)) { this.executeStep(step); changed = true; } });
+    if (changed) {
+      this.checkStepTriggers();
+      this.checkAct6SynthesisTriggers();
+      this.checkActProgression();
+      this.notify();
+    }
+    return changed;
+  }
+
+  public onViewRecord(recordId: string): void {
+    if (!recordId) return;
+    const cleanId = recordId.toLowerCase().trim();
+    this.executeMatchingSteps((step) => {
+      const stepAct = step.id === 'step_39' ? 4 : step.act;
+      return stepAct <= this.state.currentAct && step.trigger.type === 'view_record' && Boolean(step.trigger.targetId) && step.trigger.targetId!.toLowerCase().trim() === cleanId;
+    });
+  }
+
+  public onSearchTerm(term: string): void {
+    if (!term || term.trim().length < 2) return;
+    const clean = term.toLowerCase().trim();
+    this.executeMatchingSteps((step) => step.act <= this.state.currentAct && step.trigger.type === 'search_term' && Boolean(step.trigger.searchTerm) && this.isSearchMatch(clean, step.trigger.searchTerm!));
+  }
+
+  public onViewWebpage(url: string): void {
+    if (!url) return;
+    const cleanUrl = url.toLowerCase().trim();
+    this.executeMatchingSteps((step) => {
+      if (step.act > this.state.currentAct || step.trigger.type !== 'view_webpage' || !step.trigger.targetId) return false;
+      const target = step.trigger.targetId.toLowerCase();
+      const targetSlug = target.split('/').filter(Boolean).pop();
+      return cleanUrl.includes(target) || Boolean(targetSlug && cleanUrl.includes(targetSlug));
+    });
+  }
+
+  public onViewFile(filePath: string): void {
+    if (!filePath) return;
+    const cleanPath = filePath.toLowerCase().trim();
+    this.executeMatchingSteps((step) => step.act <= this.state.currentAct && step.trigger.type === 'view_file' && Boolean(step.trigger.targetId) && (cleanPath.endsWith(step.trigger.targetId!.toLowerCase()) || cleanPath.includes(step.trigger.targetId!.toLowerCase())));
+  }
+
   private areStepPrerequisitesMet(step: DiscoveryStep): boolean { return !step.trigger.requiredFlags || step.trigger.requiredFlags.every((flag) => this.hasFlag(flag)); }
-  private checkStepTriggers(): void { let triggeredAny = false; let loopCount = 0; do { triggeredAny = false; loopCount++; DISCOVERY_STEPS.forEach((step) => { if (step.act <= this.state.currentAct && step.trigger.type === 'flag' && step.trigger.targetId && this.hasFlag(step.trigger.targetId) && this.areStepPrerequisitesMet(step) && !this.state.discoveredStepIds.includes(step.id)) { this.executeStep(step); triggeredAny = true; } }); } while (triggeredAny && loopCount < 20); }
-  private executeStep(step: DiscoveryStep): void { if (this.state.discoveredStepIds.includes(step.id)) return; this.state.discoveredStepIds.push(step.id); if (step.flagGranted) this.state.flags[step.flagGranted] = true; step.factsAdded.forEach((factId) => { if (!this.state.discoveredFactIds.includes(factId)) this.state.discoveredFactIds.push(factId); }); step.questionsAdded?.forEach((qid) => { if (!this.state.openQuestionIds.includes(qid) && !this.state.resolvedQuestionIds.includes(qid)) this.state.openQuestionIds.push(qid); }); step.questionsResolved?.forEach((qid) => { this.state.openQuestionIds = this.state.openQuestionIds.filter((id) => id !== qid); if (!this.state.resolvedQuestionIds.includes(qid)) this.state.resolvedQuestionIds.push(qid); }); step.timelineEventsAdded?.forEach((evtId) => { if (!this.state.timelineEventIds.includes(evtId)) this.state.timelineEventIds.push(evtId); }); if (step.contradictionAdded && !this.state.discoveredContradictionIds.includes(step.contradictionAdded)) { this.state.discoveredContradictionIds.push(step.contradictionAdded); this.notificationHandler?.('Timeline Conflict', 'Two records disagree. Compare the sources before deciding what happened.', 'warning'); } step.leadsAdded?.forEach((leadId) => { if (!this.state.activeLeadIds.includes(leadId)) this.state.activeLeadIds.push(leadId); }); }
-  public checkActProgression(): void { if (this.state.currentAct >= 6) return; const act = this.state.currentAct; const actSteps = DISCOVERY_STEPS.filter((s) => s.act === act); const completionStep = actSteps.find((s) => s.flagGranted === `flag_act_${act}_completed`); if (completionStep) { const complete = this.state.discoveredStepIds.includes(completionStep.id) && this.areStepPrerequisitesMet(completionStep); if (!complete) return; } else { const discovered = actSteps.filter((s) => this.state.discoveredStepIds.includes(s.id)).length; if (discovered < Math.ceil(actSteps.length * 0.8)) return; } const nextAct = act + 1; const finishedAct = this.getCurrentAct(); this.state.currentAct = nextAct; this.notificationHandler?.(`Case 27 // ${finishedAct.revelationTitle}`, `A new line of inquiry is open: ${STORY_ACTS[nextAct - 1].subtitle}.`, 'success'); }
+
+  private checkStepTriggers(): void {
+    let triggeredAny = false;
+    let loopCount = 0;
+    do {
+      triggeredAny = false;
+      loopCount++;
+      DISCOVERY_STEPS.forEach((step) => {
+        const stepAct = step.id === 'step_39' ? 4 : step.act;
+        if (stepAct <= this.state.currentAct && step.trigger.type === 'flag' && step.trigger.targetId && this.hasFlag(step.trigger.targetId) && this.areStepPrerequisitesMet(step) && !this.state.discoveredStepIds.includes(step.id)) {
+          this.executeStep(step);
+          triggeredAny = true;
+        }
+      });
+    } while (triggeredAny && loopCount < 20);
+  }
+
+  private checkAct6SynthesisTriggers(): void {
+    if (this.state.currentAct !== 6) return;
+
+    const hasAllTimelineAnchors = [
+      'evt_anna_shift_end',
+      'evt_leo_vance_departure',
+      'evt_radio_traffic_willow',
+      'evt_gable_audio_witness',
+      'evt_vehicle_found_canal'
+    ].every((id) => this.state.timelineEventIds.includes(id));
+    const step55 = DISCOVERY_STEPS.find((step) => step.id === 'step_55');
+    if (hasAllTimelineAnchors && step55 && !this.state.discoveredStepIds.includes('step_55')) this.executeStep(step55);
+
+    const perpetratorEvidence = [
+      'flag_reconstructed_fatal_night',
+      'flag_read_recovered_ledger',
+      'flag_found_time_divergence',
+      'flag_inspected_audit_metadata'
+    ].every((flag) => this.hasFlag(flag));
+    const step56 = DISCOVERY_STEPS.find((step) => step.id === 'step_56');
+    if (perpetratorEvidence && step56 && !this.state.discoveredStepIds.includes('step_56')) this.executeStep(step56);
+
+    const accompliceChain = [
+      'flag_identified_hayes_perpetrator',
+      'flag_identified_ia_officers',
+      'flag_viewed_captain_vance',
+      'flag_connected_tampering_motive'
+    ].every((flag) => this.hasFlag(flag));
+    const step57 = DISCOVERY_STEPS.find((step) => step.id === 'step_57');
+    if (accompliceChain && step57 && !this.state.discoveredStepIds.includes('step_57')) this.executeStep(step57);
+  }
+
+  private executeStep(step: DiscoveryStep): void {
+    if (this.state.discoveredStepIds.includes(step.id)) return;
+    this.state.discoveredStepIds.push(step.id);
+    if (step.flagGranted) this.state.flags[step.flagGranted] = true;
+    step.factsAdded.forEach((factId) => { if (!this.state.discoveredFactIds.includes(factId)) this.state.discoveredFactIds.push(factId); });
+    step.questionsAdded?.forEach((qid) => { if (!this.state.openQuestionIds.includes(qid) && !this.state.resolvedQuestionIds.includes(qid)) this.state.openQuestionIds.push(qid); });
+    step.questionsResolved?.forEach((qid) => { this.state.openQuestionIds = this.state.openQuestionIds.filter((id) => id !== qid); if (!this.state.resolvedQuestionIds.includes(qid)) this.state.resolvedQuestionIds.push(qid); });
+    step.timelineEventsAdded?.forEach((evtId) => { if (!this.state.timelineEventIds.includes(evtId)) this.state.timelineEventIds.push(evtId); });
+    if (step.contradictionAdded && !this.state.discoveredContradictionIds.includes(step.contradictionAdded)) { this.state.discoveredContradictionIds.push(step.contradictionAdded); this.notificationHandler?.('Timeline Conflict', 'Two records disagree. Compare the sources before deciding what happened.', 'warning'); }
+    step.leadsAdded?.forEach((leadId) => { if (!this.state.activeLeadIds.includes(leadId)) this.state.activeLeadIds.push(leadId); });
+  }
+
+  public checkActProgression(): void {
+    if (this.state.currentAct >= 6) return;
+    const act = this.state.currentAct;
+    const actSteps = DISCOVERY_STEPS.filter((s) => (s.id === 'step_39' ? 4 : s.act) === act);
+    const completionStep = actSteps.find((s) => s.flagGranted === `flag_act_${act}_completed`);
+    if (completionStep) {
+      const complete = this.state.discoveredStepIds.includes(completionStep.id) && this.areStepPrerequisitesMet(completionStep);
+      if (!complete) return;
+    } else {
+      const discovered = actSteps.filter((s) => this.state.discoveredStepIds.includes(s.id)).length;
+      if (discovered < Math.ceil(actSteps.length * 0.8)) return;
+    }
+    const nextAct = act + 1;
+    const finishedAct = this.getCurrentAct();
+    this.state.currentAct = nextAct;
+    this.notificationHandler?.(`Case 27 // ${finishedAct.revelationTitle}`, `A new line of inquiry is open: ${STORY_ACTS[nextAct - 1].subtitle}.`, 'success');
+    this.checkAct6SynthesisTriggers();
+  }
+
   public getDiscoveredFacts(): StoryFact[] { return STORY_FACTS.filter((fact) => this.state.discoveredFactIds.includes(fact.id)); }
   public getOpenQuestions(): UnresolvedQuestion[] { return UNRESOLVED_QUESTIONS.filter((q) => this.state.openQuestionIds.includes(q.id)); }
   public getResolvedQuestions(): UnresolvedQuestion[] { return UNRESOLVED_QUESTIONS.filter((q) => this.state.resolvedQuestionIds.includes(q.id)); }
@@ -48,11 +175,24 @@ class StoryEngine {
 
   private isInvestigationStepReady(step: DiscoveryStep): boolean { if (step.trigger.type === 'flag') return this.areStepPrerequisitesMet(step) && Boolean(step.trigger.targetId && this.hasFlag(step.trigger.targetId)); return true; }
   private getActionableStep(): DiscoveryStep | null {
-    const currentSteps = DISCOVERY_STEPS.filter((s) => s.act === this.state.currentAct && !this.state.discoveredStepIds.includes(s.id)).sort((a, b) => a.order - b.order);
+    const currentSteps = DISCOVERY_STEPS.filter((s) => (s.id === 'step_39' ? 4 : s.act) === this.state.currentAct && !this.state.discoveredStepIds.includes(s.id)).sort((a, b) => a.order - b.order);
     return currentSteps.find((step) => this.isInvestigationStepReady(step)) || currentSteps.find((step) => step.trigger.type !== 'flag') || null;
   }
-  public getNextInvestigationAction(): InvestigationAction | null { const step = this.getActionableStep(); if (!step) return null; const unlocked = this.state.hintsUnlocked[step.id] || 0; const hintLevel = Math.min(unlocked + 1, 3); const hintText = hintLevel === 1 ? step.hintLevel1 : hintLevel === 2 ? step.hintLevel2 : step.hintLevel3; return { stepId: step.id, title: step.title, description: step.description, actionType: step.trigger.type, targetId: step.trigger.type === 'view_record' ? undefined : step.trigger.targetId, searchTerm: step.trigger.searchTerm, hintLevel, hintText, isOptional: step.order % 10 !== 0 }; }
-  public getInvestigationStatus(): { currentActTitle: string; whatWeKnow: string[]; unresolvedQuestions: string[]; activeLeads: string[]; recentDiscoveriesCount: number; nextAction: InvestigationAction | null; } { const act = this.getCurrentAct(); const facts = this.getDiscoveredFacts().slice(-4).map((f) => f.text); const questions = this.getOpenQuestions().slice(0, 3).map((q) => q.text); const leads = this.getActiveLeads().slice(0, 3).map((l) => l.title); return { currentActTitle: `${act.title}: ${act.subtitle}`, whatWeKnow: facts.length ? facts : ['The case was reopened after an unexplained post-closure modification.'], unresolvedQuestions: questions.length ? questions : ['What prompted the post-closure modification on Case 27?'], activeLeads: leads, recentDiscoveriesCount: this.state.discoveredStepIds.length, nextAction: this.getNextInvestigationAction() }; }
+  public getNextInvestigationAction(): InvestigationAction | null {
+    const step = this.getActionableStep();
+    if (!step) return null;
+    const unlocked = this.state.hintsUnlocked[step.id] || 0;
+    const hintLevel = Math.min(unlocked + 1, 3);
+    const hintText = hintLevel === 1 ? step.hintLevel1 : hintLevel === 2 ? step.hintLevel2 : step.hintLevel3;
+    return { stepId: step.id, title: step.title, description: step.description, actionType: step.trigger.type, targetId: step.trigger.type === 'view_record' ? undefined : step.trigger.targetId, searchTerm: step.trigger.searchTerm, hintLevel, hintText, isOptional: step.order % 10 !== 0 };
+  }
+  public getInvestigationStatus(): { currentActTitle: string; whatWeKnow: string[]; unresolvedQuestions: string[]; activeLeads: string[]; recentDiscoveriesCount: number; nextAction: InvestigationAction | null; } {
+    const act = this.getCurrentAct();
+    const facts = this.getDiscoveredFacts().slice(-4).map((f) => f.text);
+    const questions = this.getOpenQuestions().slice(0, 3).map((q) => q.text);
+    const leads = this.getActiveLeads().slice(0, 3).map((l) => l.title);
+    return { currentActTitle: `${act.title}: ${act.subtitle}`, whatWeKnow: facts.length ? facts : ['The case was reopened after an unexplained post-closure modification.'], unresolvedQuestions: questions.length ? questions : ['What prompted the post-closure modification on Case 27?'], activeLeads: leads, recentDiscoveriesCount: this.state.discoveredStepIds.length, nextAction: this.getNextInvestigationAction() };
+  }
   public getNextAvailableHint() { const action = this.getNextInvestigationAction(); if (!action) return null; return { stepId: action.stepId, stepTitle: action.title, currentLevel: action.hintLevel, hintText: action.hintText }; }
   public unlockHint(stepId: string): string { const step = DISCOVERY_STEPS.find((s) => s.id === stepId); if (!step) return 'No investigative lead is available for this thread.'; const nextLevel = Math.min((this.state.hintsUnlocked[stepId] || 0) + 1, 3); this.state.hintsUnlocked[stepId] = nextLevel; this.notify(); return nextLevel === 1 ? step.hintLevel1 : nextLevel === 2 ? step.hintLevel2 : step.hintLevel3; }
 
@@ -69,7 +209,8 @@ class StoryEngine {
   }
 
   private normalize(value: string): string { return value.trim().toUpperCase(); }
-  private exactDate(value: string): boolean { return this.normalize(value).startsWith('1998-09-14'); }
+  private exactDate(value: string): boolean { return this.normalize(value) === '1998-09-14 22:38'; }
+
   public submitDeduction(sub: DeductionSubmission): DeductionResult {
     this.state.deductionAttempts += 1;
     const sol = FINAL_DEDUCTION_SOLUTION;
@@ -88,13 +229,39 @@ class StoryEngine {
     const accuracyPercentage = Math.round((trueCount / scores.length) * 70 + evidenceScore * 0.3);
     const readiness = this.getDeductionReadiness();
     const isFullyCorrect = readiness.ready && allRequiredEvidence && scores.every(Boolean);
-    if (isFullyCorrect) { this.state.caseResolved = true; this.state.caseResolvedAt = new Date().toISOString().replace('T', ' ').substring(0, 19); this.state.flags.case_27_solved_correctly = true; const finalStep = DISCOVERY_STEPS.find((s) => s.id === 'step_60'); if (finalStep) this.executeStep(finalStep); }
+    if (isFullyCorrect) {
+      this.state.caseResolved = true;
+      this.state.caseResolvedAt = new Date().toISOString().replace('T', ' ').substring(0, 19);
+      this.state.flags.case_27_solved_correctly = true;
+      const finalStep = DISCOVERY_STEPS.find((s) => s.id === 'step_60');
+      if (finalStep) this.executeStep(finalStep);
+    }
     this.notify();
-    return { isFullyCorrect, accuracyPercentage, whoCorrect, whatCorrect, whenCorrect, whereCorrect, whyCorrect, howCorrect, evidenceScore, feedback: { who: whoCorrect ? 'Corroborated: Detective Daniel Hayes is supported by the reconstructed chain of records.' : 'Not established: the selected person is not supported by the complete evidence chain.', what: whatCorrect ? 'Corroborated: the final record classification is kidnapping, homicide and evidence tampering.' : 'Not established: the selected classification does not match the reconstructed offense.', when: whenCorrect ? 'Corroborated: September 14, 1998 is the verified incident date.' : 'Contradicted: the selected date conflicts with the reconstructed timeline.', where: whereCorrect ? 'Corroborated: 42 Willow Street is the primary interception site.' : 'Not established: the selected site is not the primary interception location.', why: whyCorrect ? 'Corroborated: the motive was preventing exposure of the Bell Electronics/Crownline operation.' : 'Not established: the selected motive does not explain the suppression chain.', how: howCorrect ? 'Corroborated: a pretextual traffic stop was used for the interception.' : 'Not established: the selected method does not fit the reconstructed sequence.', evidence: allRequiredEvidence ? `Complete chain selected: ${matchedEvidence.length}/${sol.keyEvidenceIds.length} required exhibits.` : `Incomplete chain: ${matchedEvidence.length}/${sol.keyEvidenceIds.length} required exhibits selected.` }, officialDetermination: isFullyCorrect ? 'CASE-1998-027 // RECONSTRUCTION ACCEPTED. The evidentiary chain is complete and the case is formally resolved.' : `CASE-1998-027 // REMANDED. ${readiness.reasons.length ? readiness.reasons.join(' ') + ' ' : ''}The record does not yet support a complete determination.` };
+    return {
+      isFullyCorrect,
+      accuracyPercentage,
+      whoCorrect,
+      whatCorrect,
+      whenCorrect,
+      whereCorrect,
+      whyCorrect,
+      howCorrect,
+      evidenceScore,
+      feedback: {
+        who: whoCorrect ? 'Corroborated: Detective Daniel Hayes is supported by the reconstructed chain of records.' : 'Not established: the selected person is not supported by the complete evidence chain.',
+        what: whatCorrect ? 'Corroborated: the final record classification is kidnapping, homicide and evidence tampering.' : 'Not established: the selected classification does not match the reconstructed offense.',
+        when: whenCorrect ? 'Corroborated: September 14, 1998 at 22:38 is the verified interception time.' : 'Contradicted: the selected date or time conflicts with the reconstructed timeline.',
+        where: whereCorrect ? 'Corroborated: 42 Willow Street is the primary interception site.' : 'Not established: the selected site is not the primary interception location.',
+        why: whyCorrect ? 'Corroborated: the motive was preventing exposure of the Bell Electronics/Crownline operation.' : 'Not established: the selected motive does not explain the suppression chain.',
+        how: howCorrect ? 'Corroborated: a pretextual traffic stop was used for the interception.' : 'Not established: the selected method does not fit the reconstructed sequence.',
+        evidence: allRequiredEvidence ? `Complete chain selected: ${matchedEvidence.length}/${sol.keyEvidenceIds.length} required exhibits.` : `Incomplete chain: ${matchedEvidence.length}/${sol.keyEvidenceIds.length} required exhibits selected.`
+      },
+      officialDetermination: isFullyCorrect ? 'CASE-1998-027 // RECONSTRUCTION ACCEPTED. The evidentiary chain is complete and the case is formally resolved.' : `CASE-1998-027 // REMANDED. ${readiness.reasons.length ? readiness.reasons.join(' ') + ' ' : ''}The record does not yet support a complete determination.`
+    };
   }
 
   public createEvidence(evidenceData: Partial<EvidenceRecord>): EvidenceRecord { const id = evidenceData.id || `E-${Date.now().toString().slice(-6)}`; const now = new Date().toISOString().replace('T', ' ').substring(0, 19); const newRecord: EvidenceRecord = { id, type: 'evidence', title: evidenceData.title || `Evidence Item ${id}`, evidenceId: evidenceData.evidenceId || id, caseId: evidenceData.caseId || 'CASE-1998-027', evidenceType: evidenceData.evidenceType || 'Physical', description: evidenceData.description || 'Newly indexed evidence item.', collectedByOfficerId: evidenceData.collectedByOfficerId || 'OFF-4081', collectionDate: evidenceData.collectionDate || now.split(' ')[0], collectionTime: evidenceData.collectionTime || now.split(' ')[1], collectionLocation: evidenceData.collectionLocation || 'Evidence Receiving Intake', storageLocation: evidenceData.storageLocation || 'Vault B', status: evidenceData.status || 'IN_STORAGE', currentStatus: evidenceData.currentStatus || 'IN_STORAGE', laboratoryStatus: evidenceData.laboratoryStatus || 'NOT_REQUESTED', chainOfCustody: evidenceData.chainOfCustody || [{ id: `cust_${Date.now()}`, timestamp: now, action: 'Initial Intake Logging', fromOfficerOrLocation: 'Field Intake', toOfficerOrLocation: 'Evidence Vault', reason: 'Initial storage' }], relatedPersonIds: evidenceData.relatedPersonIds || [], tags: evidenceData.tags || ['EVIDENCE_INTAKE'], createdAt: now, updatedAt: now, ...evidenceData }; policeDatabase.addEvidence(newRecord); this.onViewRecord(newRecord.id); return newRecord; }
-  public updateEvidence(id: string, partial: Partial<EvidenceRecord>): EvidenceRecord | null { const updated = policeDatabase.updateRecord(id, partial, 'Det. S. Miller (#4081)', 'Updated evidence metadata'); if (updated) { this.checkStepTriggers(); this.checkActProgression(); this.notify(); } return updated as EvidenceRecord | null; }
+  public updateEvidence(id: string, partial: Partial<EvidenceRecord>): EvidenceRecord | null { const updated = policeDatabase.updateRecord(id, partial, 'Det. S. Miller (#4081)', 'Updated evidence metadata'); if (updated) { this.checkStepTriggers(); this.checkAct6SynthesisTriggers(); this.checkActProgression(); this.notify(); } return updated as EvidenceRecord | null; }
   public revealEvidence(id: string): void { const rec = policeDatabase.getRecord(id) as EvidenceRecord | null; if (rec) { policeDatabase.updateRecord(id, { status: 'IN_STORAGE', currentStatus: 'IN_STORAGE' }); this.onViewRecord(id); } }
   public hideEvidence(id: string): void { policeDatabase.updateRecord(id, { status: 'ARCHIVED', currentStatus: 'ARCHIVED' }); }
   public archiveEvidence(id: string): void { policeDatabase.updateRecord(id, { status: 'ARCHIVED', isArchived: true, currentStatus: 'ARCHIVED' }); }

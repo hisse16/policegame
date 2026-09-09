@@ -5,7 +5,7 @@ import { storyEngine } from '../../services/story/storyEngine';
 import { Icon } from '../common/Icon';
 
 const ACT_UNLOCKS: Record<number, string[]> = {
-  1: ['police-records', 'file-manager', 'text-editor', 'investigation-notebook', 'settings'],
+  1: ['police-records', 'file-manager', 'investigation-notebook', 'settings'],
   2: ['evidence-lab', 'terminal'],
   3: ['investigation-board'],
   4: ['browser'],
@@ -13,7 +13,10 @@ const ACT_UNLOCKS: Record<number, string[]> = {
   6: ['final-deduction']
 };
 
-const PINNED_APPS = ['police-records', 'evidence-lab', 'investigation-board', 'investigation-notebook', 'police-mail', 'investigation-map', 'file-manager', 'terminal', 'browser', 'text-editor', 'final-deduction', 'settings'];
+// Keep the dock focused on investigation tools. Secondary utilities such as
+// Text Editor remain available when a file opens them, but do not compete for
+// attention during the core case flow.
+const PINNED_APPS = ['police-records', 'evidence-lab', 'investigation-board', 'investigation-notebook', 'police-mail', 'investigation-map', 'file-manager', 'terminal', 'browser', 'final-deduction', 'settings'];
 
 export const Dock: React.FC = () => {
   const { windows, activeWindowId, openApp, focusWindow, minimizeWindow } = useOS();
@@ -29,7 +32,7 @@ export const Dock: React.FC = () => {
     <>
       {currentAct === 1 && storyState.discoveredStepIds.length === 0 && (
         <div className="fixed bottom-[74px] left-1/2 -translate-x-1/2 z-40 w-[min(420px,calc(100vw-2rem))]">
-          <button onClick={() => openApp('police-records')} className="w-full group bg-slate-950/95 backdrop-blur-md border border-blue-700/60 hover:border-blue-500 rounded-xl shadow-2xl px-4 py-3 text-left transition-all">
+          <button onClick={() => openApp('police-records', { recordId: 'CASE-1998-027' })} className="w-full group bg-slate-950/95 backdrop-blur-md border border-blue-700/60 hover:border-blue-500 rounded-xl shadow-2xl px-4 py-3 text-left transition-all">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-blue-950 border border-blue-800 flex items-center justify-center text-blue-400"><Icon name="Search" size={18} /></div>
               <div className="min-w-0 flex-1"><div className="text-[9px] font-mono uppercase tracking-[0.16em] text-blue-400">START HERE</div><div className="mt-0.5 text-xs font-semibold text-slate-100">Review Case 27 in PRIS</div><div className="mt-0.5 text-[10px] text-slate-500">Open the police records system. Read the case before touching anything else.</div></div>

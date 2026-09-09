@@ -6,7 +6,7 @@ interface CaseResolvedEpilogueProps {
 }
 
 export const CaseResolvedEpilogue: React.FC<CaseResolvedEpilogueProps> = ({ onClose }) => (
-  <div className="absolute inset-0 z-[11000] flex items-center justify-center bg-slate-950/90 backdrop-blur-sm p-5">
+  <div className="absolute inset-0 z-[11000] flex items-center justify-center bg-slate-950/95 backdrop-blur-md p-5">
     <div className="w-[min(760px,calc(100vw-2rem))] max-h-[calc(100vh-2.5rem)] overflow-y-auto bg-slate-950 border border-emerald-700/70 rounded-2xl shadow-2xl">
       <div className="px-6 py-5 border-b border-emerald-900/70 bg-emerald-950/20">
         <div className="flex items-center gap-3">
@@ -19,7 +19,10 @@ export const CaseResolvedEpilogue: React.FC<CaseResolvedEpilogueProps> = ({ onCl
       </div>
 
       <div className="p-6 space-y-6">
-        <p className="text-sm leading-7 text-slate-300">The reconstructed record establishes what happened to Anna Claire Bell on September 14, 1998. The disappearance was not voluntary: Detective Daniel Hayes intercepted Anna after she left Bell Electronics and prevented her from delivering evidence of the freight operation to federal authorities.</p>
+        <div className="max-w-2xl">
+          <p className="text-sm leading-7 text-slate-300">The reconstructed record establishes what happened to Anna Claire Bell on September 14, 1998. The disappearance was not voluntary: Detective Daniel Hayes intercepted Anna after she left Bell Electronics and prevented her from delivering evidence of the freight operation to federal authorities.</p>
+          <p className="mt-4 text-xs leading-6 text-slate-500">There was no confession to find. No single document told the whole story. The determination rests on the record you reconstructed from independent sources.</p>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div className="p-4 rounded-xl bg-slate-900 border border-slate-800"><div className="text-[10px] font-mono text-slate-500 uppercase">Perpetrator</div><div className="mt-1 font-semibold text-slate-100">Detective Daniel Hayes</div><div className="mt-1 text-xs text-slate-400">Badge #3014</div></div>

@@ -29,14 +29,12 @@ import { Icon } from './components/common/Icon';
 const InvestigationGuide: React.FC = () => {
   const { openApp } = useOS();
   const [action, setAction] = useState<InvestigationAction | null>(() => storyEngine.getNextInvestigationAction());
-  const [storyState, setStoryState] = useState<StoryState>(() => storyEngine.getState());
   const [collapsed, setCollapsed] = useState(false);
   const [completionFlash, setCompletionFlash] = useState<{ title: string; message: string } | null>(null);
   const previousStateRef = useRef<StoryState | null>(null);
 
   useEffect(() => storyEngine.subscribe((nextState) => {
     const previous = previousStateRef.current;
-    setStoryState(nextState);
     setAction(storyEngine.getNextInvestigationAction());
 
     if (previous) {

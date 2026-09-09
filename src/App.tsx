@@ -58,13 +58,12 @@ const InvestigationGuide: React.FC = () => {
     previousStateRef.current = nextState;
   }), []);
 
-  if (!action) return null;
-
   const act = storyEngine.getCurrentAct();
   const progress = storyEngine.getCurrentActProgress();
   const progressPercent = progress.total > 0 ? Math.round((progress.completed / progress.total) * 100) : 0;
 
   const openLead = () => {
+    if (!action) return;
     if (action.actionType === 'view_record') {
       openApp('police-records');
       return;
@@ -76,8 +75,8 @@ const InvestigationGuide: React.FC = () => {
     openApp('investigation-notebook');
   };
 
-  const guidanceText = action.hintText || action.description;
-  const label = action.actionType === 'search_term' ? 'Search the records' : action.actionType === 'view_file' ? 'Check the file system' : 'Review the records';
+  const guidanceText = action?.hintText || action?.description || 'No further lead is currently available.';
+  const label = action?.actionType === 'search_term' ? 'Search the records' : action?.actionType === 'view_file' ? 'Check the file system' : 'Review the records';
 
   return (
     <>
@@ -93,36 +92,38 @@ const InvestigationGuide: React.FC = () => {
         </div>
       )}
 
-      <div className={`absolute left-4 bottom-16 z-[8000] ${collapsed ? 'w-auto' : 'w-[340px] max-w-[calc(100vw-2rem)]'}`}>
-        {collapsed ? (
-          <button onClick={() => setCollapsed(false)} className="bg-slate-900/95 border border-slate-700 rounded-lg px-3 py-2 shadow-2xl text-xs text-slate-200 flex items-center gap-2">
-            <Icon name="Compass" size={14} className="text-blue-400" /> {act.title} • {progress.completed}/{progress.total}
-          </button>
-        ) : (
-          <div className="bg-slate-950/95 backdrop-blur border border-slate-700 rounded-xl shadow-2xl overflow-hidden">
-            <div className="px-3 py-2 bg-slate-900 border-b border-slate-800">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-bold text-slate-300"><Icon name="Compass" size={13} className="text-blue-400" /> {act.title} // {act.subtitle}</div>
-                <button onClick={() => setCollapsed(true)} className="text-slate-500 hover:text-slate-200">—</button>
+      {action && (
+        <div className={`absolute left-4 bottom-16 z-[8000] ${collapsed ? 'w-auto' : 'w-[340px] max-w-[calc(100vw-2rem)]'}`}>
+          {collapsed ? (
+            <button onClick={() => setCollapsed(false)} className="bg-slate-900/95 border border-slate-700 rounded-lg px-3 py-2 shadow-2xl text-xs text-slate-200 flex items-center gap-2">
+              <Icon name="Compass" size={14} className="text-blue-400" /> {act.title} • {progress.completed}/{progress.total}
+            </button>
+          ) : (
+            <div className="bg-slate-950/95 backdrop-blur border border-slate-700 rounded-xl shadow-2xl overflow-hidden">
+              <div className="px-3 py-2 bg-slate-900 border-b border-slate-800">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-bold text-slate-300"><Icon name="Compass" size={13} className="text-blue-400" /> {act.title} // {act.subtitle}</div>
+                  <button onClick={() => setCollapsed(true)} className="text-slate-500 hover:text-slate-200">—</button>
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <div className="h-1.5 flex-1 rounded-full bg-slate-800 overflow-hidden"><div className="h-full bg-blue-500 transition-all duration-300" style={{ width: `${progressPercent}%` }} /></div>
+                  <span className="text-[10px] font-bold text-slate-400 tabular-nums">{progress.completed}/{progress.total}</span>
+                </div>
+                <div className="mt-1 text-[9px] text-slate-500 uppercase tracking-wider">Investigation progress</div>
               </div>
-              <div className="mt-2 flex items-center gap-2">
-                <div className="h-1.5 flex-1 rounded-full bg-slate-800 overflow-hidden"><div className="h-full bg-blue-500 transition-all duration-300" style={{ width: `${progressPercent}%` }} /></div>
-                <span className="text-[10px] font-bold text-slate-400 tabular-nums">{progress.completed}/{progress.total}</span>
+              <div className="p-3 space-y-2.5">
+                <div className="text-sm font-semibold text-slate-100">{label}</div>
+                <p className="text-[11px] leading-relaxed text-slate-400">{guidanceText}</p>
+                <div className="text-[10px] text-slate-500 uppercase tracking-wide">Follow the evidence. The lead points toward a line of inquiry, not the conclusion.</div>
+                <div className="flex gap-2 pt-1">
+                  <button onClick={openLead} className="flex-1 px-2.5 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-semibold">Open lead</button>
+                  <button onClick={() => openApp('investigation-notebook')} className="px-2.5 py-1.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-[11px]">Notebook</button>
+                </div>
               </div>
-              <div className="mt-1 text-[9px] text-slate-500 uppercase tracking-wider">Investigation progress</div>
             </div>
-            <div className="p-3 space-y-2.5">
-              <div className="text-sm font-semibold text-slate-100">{label}</div>
-              <p className="text-[11px] leading-relaxed text-slate-400">{guidanceText}</p>
-              <div className="text-[10px] text-slate-500 uppercase tracking-wide">Follow the evidence. The lead points toward a line of inquiry, not the conclusion.</div>
-              <div className="flex gap-2 pt-1">
-                <button onClick={openLead} className="flex-1 px-2.5 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-semibold">Open lead</button>
-                <button onClick={() => openApp('investigation-notebook')} className="px-2.5 py-1.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-[11px]">Notebook</button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </>
   );
 };

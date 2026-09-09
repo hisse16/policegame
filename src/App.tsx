@@ -26,30 +26,58 @@ import { DISCOVERY_STEPS } from './services/story/storyData';
 import { InvestigationAction, StoryState } from './types/story';
 import { Icon } from './components/common/Icon';
 
+const getActProgress = (state: StoryState) => {
+  const actSteps = DISCOVERY_STEPS.filter((step) => step.act === state.currentAct);
+  const legacyLateStep = state.currentAct === 4 ? DISCOVERY_STEPS.find((step) => step.id === 'step_39') : undefined;
+  const total = actSteps.length + (legacyLateStep && !actSteps.some((step) => step.id === legacyLateStep.id) ? 1 : 0);
+  const completed = actSteps.filter((step) => state.discoveredStepIds.includes(step.id)).length
+    + (legacyLateStep && state.discoveredStepIds.includes(legacyLateStep.id) ? 1 : 0);
+  return { completed, total };
+};
+
+const getFallbackAction = (state: StoryState): InvestigationAction | null => {
+  if (state.currentAct !== 4 || state.discoveredStepIds.includes('step_39')) return null;
+  const step = DISCOVERY_STEPS.find((candidate) => candidate.id === 'step_39');
+  if (!step) return null;
+  return {
+    stepId: step.id,
+    title: step.title,
+    description: step.description,
+    actionType: step.trigger.type,
+    targetId: undefined,
+    searchTerm: step.trigger.searchTerm,
+    hintLevel: 1,
+    hintText: step.hintLevel1,
+    isOptional: false
+  };
+};
+
 const InvestigationGuide: React.FC = () => {
   const { openApp } = useOS();
-  const [action, setAction] = useState<InvestigationAction | null>(() => storyEngine.getNextInvestigationAction());
+  const [action, setAction] = useState<InvestigationAction | null>(() => {
+    const state = storyEngine.getState();
+    return storyEngine.getNextInvestigationAction() || getFallbackAction(state);
+  });
   const [collapsed, setCollapsed] = useState(false);
   const [completionFlash, setCompletionFlash] = useState<{ title: string; message: string } | null>(null);
   const previousStateRef = useRef<StoryState | null>(null);
 
   useEffect(() => storyEngine.subscribe((nextState) => {
     const previous = previousStateRef.current;
-    setAction(storyEngine.getNextInvestigationAction());
+    setAction(storyEngine.getNextInvestigationAction() || getFallbackAction(nextState));
 
     if (previous) {
       const completedIds = nextState.discoveredStepIds.filter((id) => !previous.discoveredStepIds.includes(id));
       if (completedIds.length > 0) {
         const completedStep = DISCOVERY_STEPS.find((step) => step.id === completedIds[completedIds.length - 1]);
         if (completedStep) {
-          const actSteps = DISCOVERY_STEPS.filter((step) => step.act === completedStep.act);
-          const completedCount = actSteps.filter((step) => nextState.discoveredStepIds.includes(step.id)).length;
+          const { completed: completedCount, total } = getActProgress(nextState);
           const actComplete = previous.currentAct !== nextState.currentAct;
           setCompletionFlash({
             title: actComplete ? `ACT ${completedStep.act} COMPLETE` : 'INVESTIGATION TASK COMPLETE',
             message: actComplete
-              ? `${completedStep.act === 1 ? 'THE ARCHIVE' : completedStep.act === 2 ? 'THE ORIGINAL INVESTIGATION' : completedStep.act === 3 ? 'THE PEOPLE AROUND ANNA' : completedStep.act === 4 ? 'THE MISSING YEARS' : completedStep.act === 5 ? 'THE COVERED RECORD' : 'THE TRUTH'} // ${completedCount}/${actSteps.length} tasks completed. A new investigative thread is now open.`
-              : `${completedStep.title} // ${completedCount}/${actSteps.length} tasks completed in this act.`
+              ? `${completedStep.act === 1 ? 'THE ARCHIVE' : completedStep.act === 2 ? 'THE ORIGINAL INVESTIGATION' : completedStep.act === 3 ? 'THE PEOPLE AROUND ANNA' : completedStep.act === 4 ? 'THE MISSING YEARS' : completedStep.act === 5 ? 'THE COVERED RECORD' : 'THE TRUTH'} // ${completedCount}/${total} tasks completed. A new investigative thread is now open.`
+              : `${completedStep.title} // ${completedCount}/${total} tasks completed in this act.`
           });
           window.setTimeout(() => setCompletionFlash(null), 4200);
         }
@@ -58,8 +86,9 @@ const InvestigationGuide: React.FC = () => {
     previousStateRef.current = nextState;
   }), []);
 
+  const state = storyEngine.getState();
   const act = storyEngine.getCurrentAct();
-  const progress = storyEngine.getCurrentActProgress();
+  const progress = getActProgress(state);
   const progressPercent = progress.total > 0 ? Math.round((progress.completed / progress.total) * 100) : 0;
 
   const openLead = () => {
@@ -72,11 +101,19 @@ const InvestigationGuide: React.FC = () => {
       openApp('file-manager', { path: action.targetId });
       return;
     }
+    if (action.actionType === 'view_webpage' && action.targetId) {
+      openApp('browser', { initialUrl: action.targetId });
+      return;
+    }
+    if (action.actionType === 'search_term') {
+      openApp('police-records');
+      return;
+    }
     openApp('investigation-notebook');
   };
 
   const guidanceText = action?.hintText || action?.description || 'No further lead is currently available.';
-  const label = action?.actionType === 'search_term' ? 'Search the records' : action?.actionType === 'view_file' ? 'Check the file system' : 'Review the records';
+  const label = action?.actionType === 'search_term' ? 'Search the records' : action?.actionType === 'view_file' ? 'Check the file system' : action?.actionType === 'view_webpage' ? 'Open the archive' : 'Review the records';
 
   return (
     <>

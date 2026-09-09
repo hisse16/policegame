@@ -32,15 +32,10 @@ export const WindowManager: React.FC = () => {
         return (
           <InvestigationNotebookApp
             onOpenRecord={(recId) => {
-              if (recId.startsWith('MAIL-') || recId.startsWith('EML-')) {
-                openApp('police-mail', { emailId: recId });
-              } else if (recId.startsWith('LOC-')) {
-                openApp('investigation-map', { locationId: recId });
-              } else if (recId.startsWith('EV-') || recId.startsWith('E-')) {
-                openApp('evidence-lab', { evidenceId: recId });
-              } else {
-                openApp('police-records', { recordId: recId });
-              }
+              if (recId.startsWith('MAIL-') || recId.startsWith('EML-')) openApp('police-mail', { emailId: recId });
+              else if (recId.startsWith('LOC-')) openApp('investigation-map', { locationId: recId });
+              else if (recId.startsWith('EV-') || recId.startsWith('E-')) openApp('evidence-lab', { evidenceId: recId });
+              else openApp('police-records', { recordId: recId });
             }}
             onOpenApp={openApp}
           />
@@ -54,15 +49,10 @@ export const WindowManager: React.FC = () => {
           <FinalDeductionApp
             onClose={() => closeWindow(windowId)}
             onOpenRecord={(recId) => {
-              if (recId.startsWith('MAIL-') || recId.startsWith('EML-')) {
-                openApp('police-mail', { emailId: recId });
-              } else if (recId.startsWith('LOC-')) {
-                openApp('investigation-map', { locationId: recId });
-              } else if (recId.startsWith('EV-') || recId.startsWith('E-')) {
-                openApp('evidence-lab', { evidenceId: recId });
-              } else {
-                openApp('police-records', { recordId: recId });
-              }
+              if (recId.startsWith('MAIL-') || recId.startsWith('EML-')) openApp('police-mail', { emailId: recId });
+              else if (recId.startsWith('LOC-')) openApp('investigation-map', { locationId: recId });
+              else if (recId.startsWith('EV-') || recId.startsWith('E-')) openApp('evidence-lab', { evidenceId: recId });
+              else openApp('police-records', { recordId: recId });
             }}
           />
         );
@@ -70,8 +60,12 @@ export const WindowManager: React.FC = () => {
         return <FileManagerApp windowId={windowId} params={params} />;
       case 'terminal':
         return <TerminalApp windowId={windowId} params={params} />;
-      case 'browser':
-        return <BrowserApp windowId={windowId} params={params} />;
+      case 'browser': {
+        // Some callers historically used initialUrl while BrowserApp expects url.
+        // Normalize both forms here so guided leads and file links always navigate.
+        const browserParams = params ? { ...params, url: params.url ?? params.initialUrl } : undefined;
+        return <BrowserApp windowId={windowId} params={browserParams} />;
+      }
       case 'text-editor':
         return <TextEditorApp windowId={windowId} params={params} />;
       case 'image-viewer':
@@ -83,11 +77,7 @@ export const WindowManager: React.FC = () => {
       case 'calculator':
         return <CalculatorApp windowId={windowId} />;
       default:
-        return (
-          <div className="p-6 text-center text-slate-400">
-            Unknown application: {appId}
-          </div>
-        );
+        return <div className="p-6 text-center text-slate-400">Unknown application: {appId}</div>;
     }
   };
 

@@ -58,8 +58,6 @@ const InvestigationGuide: React.FC = () => {
         const completedStep = DISCOVERY_STEPS.find((step) => step.id === completedIds[completedIds.length - 1]);
         if (completedStep) {
           const completedAct = getStepAct(completedStep.id, completedStep.act);
-          const progressState = previous.currentAct === completedAct ? nextState : previous;
-          const { completed: completedCount, total } = getActProgress(progressState);
           const actComplete = previous.currentAct !== nextState.currentAct;
           setCompletionFlash({
             title: actComplete ? `ACT ${completedAct} // FILED` : 'CASE NOTE UPDATED',
@@ -91,7 +89,7 @@ const InvestigationGuide: React.FC = () => {
 
   return <>
     {completionFlash && <div className="absolute top-16 left-1/2 -translate-x-1/2 z-[9000] w-[min(520px,calc(100vw-2rem))]"><div className="bg-slate-950/98 border border-emerald-500/50 rounded-xl shadow-2xl overflow-hidden"><div className="px-4 py-2 border-b border-slate-800 bg-emerald-950/30 flex items-center gap-2"><Icon name="CheckCircle2" size={16} className="text-emerald-400" /><span className="text-[11px] uppercase tracking-widest font-bold text-emerald-300">{completionFlash.title}</span></div><div className="px-4 py-3 text-sm text-slate-200">{completionFlash.message}</div></div></div>}
-    {action && <div className={`absolute left-4 bottom-16 z-[8000] ${collapsed ? 'w-auto' : 'w-[340px] max-w-[calc(100vw-2rem)]'}`}>{collapsed ? <button onClick={() => { playSound('click'); setCollapsed(false); }} className="bg-slate-900/95 border border-slate-700 rounded-lg px-3 py-2 shadow-2xl text-xs text-slate-200 flex items-center gap-2"><Icon name="Compass" size={14} className="text-blue-400" /> {act.title} • {progress.completed}/{progress.total}</button> : <div className="bg-slate-950/95 backdrop-blur border border-slate-700 rounded-xl shadow-2xl overflow-hidden"><div className="px-3 py-2 bg-slate-900 border-b border-slate-800"><div className="flex items-center justify-between"><div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-bold text-slate-300"><Icon name="Compass" size={13} className="text-blue-400" /> {act.title}</div><button onClick={() => { playSound('click'); setCollapsed(true); }} className="text-slate-500 hover:text-slate-200">—</button></div><div className="mt-2 flex items-center gap-2"><div className="h-1.5 flex-1 rounded-full bg-slate-800 overflow-hidden"><div className="h-full bg-blue-500 transition-all duration-300" style={{ width: `${progressPercent}%` }} /></div><span className="text-[10px] font-bold text-slate-400 tabular-nums">{progress.completed}/{progress.total}</span></div><div className="mt-1 text-[9px] text-slate-500 uppercase tracking-wider">Case status</div></div><div className="p-3 space-y-2.5"><div className="text-sm font-semibold text-slate-100">{label}</div><p className="text-[11px] leading-relaxed text-slate-400">{guidanceText}</p><div className="text-[10px] text-slate-500 leading-relaxed">The guide points toward evidence already relevant to the case. The conclusion is yours.</div><div className="flex gap-2 pt-1"><button onClick={openLead} className="flex-1 px-2.5 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-semibold">Review lead</button><button onClick={() => { playSound('click'); openApp('investigation-notebook'); }} className="px-2.5 py-1.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-[11px]">Notebook</button></div></div></div>}</div>}
+    {action && <div className={`absolute left-4 bottom-16 z-[8000] ${collapsed ? 'w-auto' : 'w-[340px] max-w-[calc(100vw-2rem)]'}`}>{collapsed ? <button onClick={() => { playSound('click'); setCollapsed(false); }} className="bg-slate-900/95 border border-slate-700 rounded-lg px-3 py-2 shadow-2xl text-xs text-slate-200 flex items-center gap-2"><Icon name="Compass" size={14} className="text-blue-400" /> CASE DESK · {act.title} · {progress.completed}/{progress.total}</button> : <div className="bg-slate-950/95 backdrop-blur border border-slate-700 rounded-xl shadow-2xl overflow-hidden"><div className="px-3 py-2 bg-slate-900 border-b border-slate-800"><div className="flex items-center justify-between"><div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-bold text-slate-300"><Icon name="Compass" size={13} className="text-blue-400" /> CASE DESK</div><button onClick={() => { playSound('click'); setCollapsed(true); }} className="text-slate-500 hover:text-slate-200">—</button></div><div className="mt-1 text-[9px] text-slate-500 uppercase tracking-wider">{act.title} · {progress.completed}/{progress.total}</div><div className="mt-2 h-1.5 rounded-full bg-slate-800 overflow-hidden"><div className="h-full bg-blue-500 transition-all duration-300" style={{ width: `${progressPercent}%` }} /></div></div><div className="p-3 space-y-2.5"><div className="text-sm font-semibold text-slate-100">{action.title}</div><p className="text-[11px] leading-relaxed text-slate-400">{guidanceText}</p><div className="text-[10px] text-slate-500 leading-relaxed">The Case Desk only points to the next relevant evidence. You decide what it means.</div><div className="flex gap-2 pt-1"><button onClick={openLead} className="flex-1 px-2.5 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-semibold">Open lead</button><button onClick={() => { playSound('click'); openApp('investigation-notebook'); }} className="px-2.5 py-1.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-[11px]">Notebook</button></div></div></div>}</div>}
   </>;
 };
 
@@ -103,17 +101,22 @@ const WorkstationOS: React.FC = () => {
 
   useEffect(() => {
     if (powerState !== 'running') return;
+    // Older builds stored story progression under v1. Keep the new narrative model
+    // clean by migrating once rather than allowing stale discovery instructions to survive.
+    try {
+      if (localStorage.getItem('investigator_os_story_state_v1') && !localStorage.getItem('investigator_os_story_migrated_v2')) {
+        storyEngine.resetState();
+        localStorage.removeItem('investigator_os_story_state_v1');
+        localStorage.setItem('investigator_os_story_migrated_v2', 'true');
+      }
+    } catch {}
     if (!sessionStorage.getItem('investigator_onboarding_seen')) window.setTimeout(() => setShowOnboarding(true), 500);
   }, [powerState]);
 
   useEffect(() => storyEngine.subscribe((state) => {
     if (state.caseResolved && !sessionStorage.getItem('case_27_epilogue_seen')) {
-      // Let the determination screen breathe before the final debrief appears.
       const timer = window.setTimeout(() => {
-        if (!sessionStorage.getItem('case_27_epilogue_seen')) {
-          playSound('success');
-          setShowEpilogue(true);
-        }
+        if (!sessionStorage.getItem('case_27_epilogue_seen')) { playSound('success'); setShowEpilogue(true); }
       }, 2200);
       return () => window.clearTimeout(timer);
     }

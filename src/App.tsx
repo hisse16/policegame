@@ -60,7 +60,10 @@ const InvestigationGuide: React.FC = () => {
           const progressState = previous.currentAct === completedAct ? nextState : previous;
           const { completed: completedCount, total } = getActProgress(progressState);
           const actComplete = previous.currentAct !== nextState.currentAct;
-          setCompletionFlash({ title: actComplete ? `ACT ${completedAct} COMPLETE` : 'INVESTIGATION TASK COMPLETE', message: actComplete ? `${ACT_NAMES[completedAct]} // ${completedCount}/${total} tasks completed. A new investigative thread is now open.` : `${completedStep.title} // ${completedCount}/${total} tasks completed in this act.` });
+          setCompletionFlash({
+            title: actComplete ? `ACT ${completedAct} // FILED` : 'CASE NOTE UPDATED',
+            message: actComplete ? `${ACT_NAMES[completedAct]} has been fully reviewed. A new investigative thread is now available.` : `${completedStep.title} // Your case record has been updated.`,
+          });
           window.setTimeout(() => setCompletionFlash(null), 4200);
         }
       }
@@ -80,12 +83,12 @@ const InvestigationGuide: React.FC = () => {
     if (action.actionType === 'search_term') { openApp('police-records'); return; }
     openApp('investigation-notebook');
   };
-  const guidanceText = action?.hintText || action?.description || 'No further lead is currently available.';
-  const label = action?.actionType === 'search_term' ? 'Search the records' : action?.actionType === 'view_file' ? 'Check the file system' : action?.actionType === 'view_webpage' ? 'Open the archive' : 'Review the records';
+  const guidanceText = action?.hintText || action?.description || 'No unresolved lead is currently recorded.';
+  const label = action?.actionType === 'search_term' ? 'Records lead' : action?.actionType === 'view_file' ? 'Archive lead' : action?.actionType === 'view_webpage' ? 'Public-record lead' : 'Case lead';
 
   return <>
     {completionFlash && <div className="absolute top-16 left-1/2 -translate-x-1/2 z-[9000] w-[min(520px,calc(100vw-2rem))]"><div className="bg-slate-950/98 border border-emerald-500/50 rounded-xl shadow-2xl overflow-hidden"><div className="px-4 py-2 border-b border-slate-800 bg-emerald-950/30 flex items-center gap-2"><Icon name="CheckCircle2" size={16} className="text-emerald-400" /><span className="text-[11px] uppercase tracking-widest font-bold text-emerald-300">{completionFlash.title}</span></div><div className="px-4 py-3 text-sm text-slate-200">{completionFlash.message}</div></div></div>}
-    {action && <div className={`absolute left-4 bottom-16 z-[8000] ${collapsed ? 'w-auto' : 'w-[340px] max-w-[calc(100vw-2rem)]'}`}>{collapsed ? <button onClick={() => setCollapsed(false)} className="bg-slate-900/95 border border-slate-700 rounded-lg px-3 py-2 shadow-2xl text-xs text-slate-200 flex items-center gap-2"><Icon name="Compass" size={14} className="text-blue-400" /> {act.title} • {progress.completed}/{progress.total}</button> : <div className="bg-slate-950/95 backdrop-blur border border-slate-700 rounded-xl shadow-2xl overflow-hidden"><div className="px-3 py-2 bg-slate-900 border-b border-slate-800"><div className="flex items-center justify-between"><div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-bold text-slate-300"><Icon name="Compass" size={13} className="text-blue-400" /> {act.title} // {act.subtitle}</div><button onClick={() => setCollapsed(true)} className="text-slate-500 hover:text-slate-200">—</button></div><div className="mt-2 flex items-center gap-2"><div className="h-1.5 flex-1 rounded-full bg-slate-800 overflow-hidden"><div className="h-full bg-blue-500 transition-all duration-300" style={{ width: `${progressPercent}%` }} /></div><span className="text-[10px] font-bold text-slate-400 tabular-nums">{progress.completed}/{progress.total}</span></div><div className="mt-1 text-[9px] text-slate-500 uppercase tracking-wider">Investigation progress</div></div><div className="p-3 space-y-2.5"><div className="text-sm font-semibold text-slate-100">{label}</div><p className="text-[11px] leading-relaxed text-slate-400">{guidanceText}</p><div className="text-[10px] text-slate-500 uppercase tracking-wide">Follow the evidence. The lead points toward a line of inquiry, not the conclusion.</div><div className="flex gap-2 pt-1"><button onClick={openLead} className="flex-1 px-2.5 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-semibold">Open lead</button><button onClick={() => openApp('investigation-notebook')} className="px-2.5 py-1.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-[11px]">Notebook</button></div></div></div>}</div>}
+    {action && <div className={`absolute left-4 bottom-16 z-[8000] ${collapsed ? 'w-auto' : 'w-[340px] max-w-[calc(100vw-2rem)]'}`}>{collapsed ? <button onClick={() => setCollapsed(false)} className="bg-slate-900/95 border border-slate-700 rounded-lg px-3 py-2 shadow-2xl text-xs text-slate-200 flex items-center gap-2"><Icon name="Compass" size={14} className="text-blue-400" /> {act.title} • {progress.completed}/{progress.total}</button> : <div className="bg-slate-950/95 backdrop-blur border border-slate-700 rounded-xl shadow-2xl overflow-hidden"><div className="px-3 py-2 bg-slate-900 border-b border-slate-800"><div className="flex items-center justify-between"><div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-bold text-slate-300"><Icon name="Compass" size={13} className="text-blue-400" /> {act.title}</div><button onClick={() => setCollapsed(true)} className="text-slate-500 hover:text-slate-200">—</button></div><div className="mt-2 flex items-center gap-2"><div className="h-1.5 flex-1 rounded-full bg-slate-800 overflow-hidden"><div className="h-full bg-blue-500 transition-all duration-300" style={{ width: `${progressPercent}%` }} /></div><span className="text-[10px] font-bold text-slate-400 tabular-nums">{progress.completed}/{progress.total}</span></div><div className="mt-1 text-[9px] text-slate-500 uppercase tracking-wider">Case status</div></div><div className="p-3 space-y-2.5"><div className="text-sm font-semibold text-slate-100">{label}</div><p className="text-[11px] leading-relaxed text-slate-400">{guidanceText}</p><div className="text-[10px] text-slate-500 leading-relaxed">The guide points toward evidence already relevant to the case. The conclusion is yours.</div><div className="flex gap-2 pt-1"><button onClick={openLead} className="flex-1 px-2.5 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-semibold">Review lead</button><button onClick={() => openApp('investigation-notebook')} className="px-2.5 py-1.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-[11px]">Notebook</button></div></div></div>}</div>}
   </>;
 };
 
@@ -97,13 +100,8 @@ const WorkstationOS: React.FC = () => {
 
   useEffect(() => {
     if (powerState !== 'running') return;
-    const hasBooted = sessionStorage.getItem('securix_initial_boot');
-    if (!hasBooted) {
-      sessionStorage.setItem('securix_initial_boot', 'true');
-      openApp('text-editor', { path: '/home/investigator/Desktop/readme.txt' });
-    }
-    if (!sessionStorage.getItem('investigator_onboarding_seen')) window.setTimeout(() => setShowOnboarding(true), hasBooted ? 250 : 650);
-  }, [powerState, openApp]);
+    if (!sessionStorage.getItem('investigator_onboarding_seen')) window.setTimeout(() => setShowOnboarding(true), 500);
+  }, [powerState]);
 
   useEffect(() => storyEngine.subscribe((state) => {
     if (state.caseResolved && !sessionStorage.getItem('case_27_epilogue_seen')) setShowEpilogue(true);
@@ -112,7 +110,7 @@ const WorkstationOS: React.FC = () => {
   if (powerState === 'locked' || powerState === 'logging_out') return <LockScreen />;
   return <div className={`relative w-screen h-screen overflow-hidden select-none bg-slate-950 font-sans text-slate-100 ${gameSettings.highContrast ? 'contrast-125' : ''}`} style={{ transform: gameSettings.uiScale !== 1 ? `scale(${gameSettings.uiScale})` : undefined, transformOrigin: 'top left', width: gameSettings.uiScale !== 1 ? `${100 / gameSettings.uiScale}vw` : '100vw', height: gameSettings.uiScale !== 1 ? `${100 / gameSettings.uiScale}vh` : '100vh' }}>
     <TopPanel /><Desktop><WindowManager /></Desktop><Dock /><AltTabSwitcher /><NotificationToasts /><InvestigationGuide />
-    {showOnboarding && <InvestigatorOnboarding onComplete={() => setShowOnboarding(false)} />}
+    {showOnboarding && <InvestigatorOnboarding onComplete={() => setShowOnboarding(false)} onOpenPRIS={() => openApp('police-records')} />}
     {showEpilogue && <CaseResolvedEpilogue onClose={() => { sessionStorage.setItem('case_27_epilogue_seen', 'true'); setShowEpilogue(false); }} />}
     {gameSettings.crtScanlines && <div className="absolute inset-0 pointer-events-none opacity-[0.05] z-9999" style={{ backgroundImage: 'linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.45) 50%)', backgroundSize: '100% 3px' }} />}
   </div>;

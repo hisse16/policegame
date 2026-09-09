@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { GameState, BootType, GameSettings, SaveMetadata } from '../types/game';
 import { saveSystem } from '../services/saveSystem';
 import { audioSystem } from '../services/audioSystem';
+import { storyEngine } from '../services/story/storyEngine';
 
 const GAME_SETTINGS_KEY = 'case27_game_settings';
 
@@ -33,8 +34,6 @@ interface GameContextValue {
   saveMeta: SaveMetadata | null;
   isNewGameModalOpen: boolean;
   isExitModalOpen: boolean;
-  
-  // Navigation actions
   setGameState: (state: GameState) => void;
   handleStartGameClick: () => void;
   continueGame: () => void;
@@ -47,12 +46,8 @@ interface GameContextValue {
   skipBoot: () => void;
   openExitModal: () => void;
   closeExitModal: () => void;
-  
-  // Computer hook actions
   onComputerShutdown: () => void;
   onComputerRestart: () => void;
-  
-  // Settings
   updateGameSettings: (partial: Partial<GameSettings>) => void;
   resetGameSettings: () => void;
   refreshSaveMetadata: () => void;
@@ -68,7 +63,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isNewGameModalOpen, setIsNewGameModalOpen] = useState(false);
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
 
-  // Settings
   const [gameSettings, setGameSettings] = useState<GameSettings>(() => {
     try {
       const saved = localStorage.getItem(GAME_SETTINGS_KEY);
@@ -77,16 +71,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return DEFAULT_GAME_SETTINGS;
   });
 
-  // Save metadata
-  const [saveMeta, setSaveMeta] = useState<SaveMetadata | null>(() => {
-    return saveSystem.getSaveMetadata();
-  });
+  const [saveMeta, setSaveMeta] = useState<SaveMetadata | null>(() => saveSystem.getSaveMetadata());
 
   const refreshSaveMetadata = useCallback(() => {
     setSaveMeta(saveSystem.getSaveMetadata());
   }, []);
 
-  // Update audio system whenever audio settings change
   useEffect(() => {
     audioSystem.updateVolumes(
       gameSettings.masterVolume,
@@ -95,22 +85,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       gameSettings.ambientMuted,
       gameSettings.uiMuted
     );
-  }, [
-    gameSettings.masterVolume,
-    gameSettings.ambientVolume,
-    gameSettings.uiVolume,
-    gameSettings.ambientMuted,
-    gameSettings.uiMuted
-  ]);
+  }, [gameSettings.masterVolume, gameSettings.ambientVolume, gameSettings.uiVolume, gameSettings.ambientMuted, gameSettings.uiMuted]);
 
-  // Save game settings
   useEffect(() => {
-    try {
-      localStorage.setItem(GAME_SETTINGS_KEY, JSON.stringify(gameSettings));
-    } catch {}
+    try { localStorage.setItem(GAME_SETTINGS_KEY, JSON.stringify(gameSettings)); } catch {}
   }, [gameSettings]);
 
-  // Ambient sound management
   useEffect(() => {
     if (gameState === 'MAIN_MENU' || gameState === 'SETTINGS' || gameState === 'HOW_TO_PLAY' || gameState === 'CREDITS') {
       audioSystem.startAmbientHum();
@@ -119,16 +99,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [gameState]);
 
-  // Update settings helper
   const updateGameSettings = useCallback((partial: Partial<GameSettings>) => {
     setGameSettings((prev) => ({ ...prev, ...partial }));
   }, []);
 
-  const resetGameSettings = useCallback(() => {
-    setGameSettings(DEFAULT_GAME_SETTINGS);
-  }, []);
+  const resetGameSettings = useCallback(() => setGameSettings(DEFAULT_GAME_SETTINGS), []);
 
-  // Start Boot Sequence
   const beginBootSequence = useCallback((type: BootType = 'normal') => {
     setBootType(type);
     setGameState('BOOTING');
@@ -168,7 +144,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => clearInterval(interval);
   }, [refreshSaveMetadata]);
 
-  // Skip boot option
   const skipBoot = useCallback(() => {
     if (gameState === 'BOOTING') {
       setBootProgress(100);
@@ -177,33 +152,29 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [gameState, refreshSaveMetadata]);
 
-  // Start Game Button Handler
   const handleStartGameClick = useCallback(() => {
     audioSystem.playMenuSelect();
     const hasExistingSave = saveSystem.hasSave();
     if (hasExistingSave) {
-      // Prompt modal to choose continue vs new
       setIsNewGameModalOpen(true);
     } else {
-      // First-time start
       saveSystem.startNewInvestigation();
       refreshSaveMetadata();
       beginBootSequence('normal');
     }
   }, [beginBootSequence, refreshSaveMetadata]);
 
-  // Continue Game
   const continueGame = useCallback(() => {
     audioSystem.playMenuSelect();
     setIsNewGameModalOpen(false);
     beginBootSequence('normal');
   }, [beginBootSequence]);
 
-  // Start New Game Confirmed (resets previous progress)
   const startNewGameConfirmed = useCallback(() => {
     audioSystem.playMenuSelect();
     setIsNewGameModalOpen(false);
     saveSystem.startNewInvestigation();
+    storyEngine.resetState();
     refreshSaveMetadata();
     beginBootSequence('normal');
   }, [beginBootSequence, refreshSaveMetadata]);
@@ -213,20 +184,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsNewGameModalOpen(false);
   }, []);
 
-  const openSettings = useCallback(() => {
-    audioSystem.playMenuSelect();
-    setGameState('SETTINGS');
-  }, []);
-
-  const openHowToPlay = useCallback(() => {
-    audioSystem.playMenuSelect();
-    setGameState('HOW_TO_PLAY');
-  }, []);
-
-  const openCredits = useCallback(() => {
-    audioSystem.playMenuSelect();
-    setGameState('CREDITS');
-  }, []);
+  const openSettings = useCallback(() => { audioSystem.playMenuSelect(); setGameState('SETTINGS'); }, []);
+  const openHowToPlay = useCallback(() => { audioSystem.playMenuSelect(); setGameState('HOW_TO_PLAY'); }, []);
+  const openCredits = useCallback(() => { audioSystem.playMenuSelect(); setGameState('CREDITS'); }, []);
 
   const returnToMainMenu = useCallback(() => {
     audioSystem.playMenuBack();
@@ -234,79 +194,32 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshSaveMetadata();
   }, [refreshSaveMetadata]);
 
-  const openExitModal = useCallback(() => {
-    audioSystem.playMenuClick();
-    setIsExitModalOpen(true);
-  }, []);
+  const openExitModal = useCallback(() => { audioSystem.playMenuClick(); setIsExitModalOpen(true); }, []);
+  const closeExitModal = useCallback(() => { audioSystem.playMenuBack(); setIsExitModalOpen(false); }, []);
 
-  const closeExitModal = useCallback(() => {
-    audioSystem.playMenuBack();
-    setIsExitModalOpen(false);
-  }, []);
-
-  // Shutdown sequence:
-  // COMPUTER_RUNNING -> COMPUTER_SHUTTING_DOWN -> MAIN_MENU
   const onComputerShutdown = useCallback(() => {
     setGameState('COMPUTER_SHUTTING_DOWN');
     audioSystem.playShutdownRelay();
-
-    // Autosave state
-    if (gameSettings.autosaveEnabled) {
-      saveSystem.saveCurrentGame('shutdown');
-    }
-
-    setTimeout(() => {
-      setGameState('MAIN_MENU');
-      refreshSaveMetadata();
-    }, 2400);
+    if (gameSettings.autosaveEnabled) saveSystem.saveCurrentGame('shutdown');
+    setTimeout(() => { setGameState('MAIN_MENU'); refreshSaveMetadata(); }, 2400);
   }, [gameSettings.autosaveEnabled, refreshSaveMetadata]);
 
-  // Restart sequence:
-  // COMPUTER_RUNNING -> COMPUTER_RESTARTING -> BOOTING -> COMPUTER_RUNNING
-  // MUST NOT return to MAIN_MENU!
   const onComputerRestart = useCallback(() => {
     setGameState('COMPUTER_RESTARTING');
     audioSystem.playShutdownRelay();
-
-    if (gameSettings.autosaveEnabled) {
-      saveSystem.saveCurrentGame('restart');
-    }
-
-    setTimeout(() => {
-      beginBootSequence('restart');
-    }, 1800);
+    if (gameSettings.autosaveEnabled) saveSystem.saveCurrentGame('restart');
+    setTimeout(() => beginBootSequence('restart'), 1800);
   }, [gameSettings.autosaveEnabled, beginBootSequence]);
 
   return (
-    <GameContext.Provider
-      value={{
-        gameState,
-        bootType,
-        bootProgress,
-        bootLogs,
-        gameSettings,
-        saveMeta,
-        isNewGameModalOpen,
-        isExitModalOpen,
-        setGameState,
-        handleStartGameClick,
-        continueGame,
-        startNewGameConfirmed,
-        closeNewGameModal,
-        openSettings,
-        openHowToPlay,
-        openCredits,
-        returnToMainMenu,
-        skipBoot,
-        openExitModal,
-        closeExitModal,
-        onComputerShutdown,
-        onComputerRestart,
-        updateGameSettings,
-        resetGameSettings,
-        refreshSaveMetadata
-      }}
-    >
+    <GameContext.Provider value={{
+      gameState, bootType, bootProgress, bootLogs, gameSettings, saveMeta,
+      isNewGameModalOpen, isExitModalOpen, setGameState, handleStartGameClick,
+      continueGame, startNewGameConfirmed, closeNewGameModal, openSettings,
+      openHowToPlay, openCredits, returnToMainMenu, skipBoot, openExitModal,
+      closeExitModal, onComputerShutdown, onComputerRestart, updateGameSettings,
+      resetGameSettings, refreshSaveMetadata
+    }}>
       {children}
     </GameContext.Provider>
   );
@@ -314,6 +227,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useGame = () => {
   const ctx = useContext(GameContext);
-  if (!ctx) throw new Error('useGame must be used within a GameProvider');
+  if (!ctx) throw new Error('useGame must be used within GameProvider');
   return ctx;
 };

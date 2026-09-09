@@ -104,16 +104,18 @@ class StoryEngine {
   private checkAct6SynthesisTriggers(): void {
     if (this.state.currentAct !== 6) return;
 
+    // Step 55 is now a synthesis milestone. The player reaches it by assembling
+    // corroborated timeline anchors, not by guessing an artificial search phrase.
     const hasAllTimelineAnchors = [
       'evt_anna_shift_end',
-      'evt_leo_vance_departure',
       'evt_radio_traffic_willow',
       'evt_gable_audio_witness',
       'evt_vehicle_found_canal'
-    ].every((id) => this.state.timelineEventIds.includes(id));
+    ].every((id) => this.state.timelineEventIds.includes(id)) && this.hasFlag('flag_interviewed_leo_vance');
     const step55 = DISCOVERY_STEPS.find((step) => step.id === 'step_55');
     if (hasAllTimelineAnchors && step55 && !this.state.discoveredStepIds.includes('step_55')) this.executeStep(step55);
 
+    // Step 56 requires the timeline plus independent physical/documentary proof.
     const perpetratorEvidence = [
       'flag_reconstructed_fatal_night',
       'flag_read_recovered_ledger',
@@ -123,6 +125,7 @@ class StoryEngine {
     const step56 = DISCOVERY_STEPS.find((step) => step.id === 'step_56');
     if (perpetratorEvidence && step56 && !this.state.discoveredStepIds.includes('step_56')) this.executeStep(step56);
 
+    // Step 57 is unlocked by connecting the older IA case to the 2004 cover-up.
     const accompliceChain = [
       'flag_identified_hayes_perpetrator',
       'flag_identified_ia_officers',
@@ -160,7 +163,14 @@ class StoryEngine {
     const nextAct = act + 1;
     const finishedAct = this.getCurrentAct();
     this.state.currentAct = nextAct;
-    this.notificationHandler?.(`Case 27 // ${finishedAct.revelationTitle}`, `A new line of inquiry is open: ${STORY_ACTS[nextAct - 1].subtitle}.`, 'success');
+    const unlockMessage: Record<number, string> = {
+      2: 'Evidence & Forensics is now available in the workstation dock.',
+      3: 'The Investigation Board is now available in the workstation dock.',
+      4: 'Browser access is now available for public archive research.',
+      5: 'Police Mail and the Investigation Map are now available.',
+      6: 'The Case Determination module is now available.'
+    };
+    this.notificationHandler?.(`Case 27 // ${finishedAct.revelationTitle}`, `A new line of inquiry is open: ${STORY_ACTS[nextAct - 1].subtitle}. ${unlockMessage[nextAct] || ''}`, 'success');
     this.checkAct6SynthesisTriggers();
   }
 
@@ -183,8 +193,16 @@ class StoryEngine {
     if (!step) return null;
     const unlocked = this.state.hintsUnlocked[step.id] || 0;
     const hintLevel = Math.min(unlocked + 1, 3);
-    const hintText = hintLevel === 1 ? step.hintLevel1 : hintLevel === 2 ? step.hintLevel2 : step.hintLevel3;
-    return { stepId: step.id, title: step.title, description: step.description, actionType: step.trigger.type, targetId: step.trigger.type === 'view_record' ? undefined : step.trigger.targetId, searchTerm: step.trigger.searchTerm, hintLevel, hintText, isOptional: step.order % 10 !== 0 };
+    let title = step.title;
+    let description = step.description;
+    let hintText = hintLevel === 1 ? step.hintLevel1 : hintLevel === 2 ? step.hintLevel2 : step.hintLevel3;
+    // Keep the first appearance of Hayes investigative rather than accusatory.
+    if (step.id === 'step_05') {
+      title = 'Review the Lead Investigator';
+      description = 'The original reports share an author. Verify the investigator’s role and prior assignments before drawing conclusions.';
+      hintText = hintLevel === 1 ? 'Open the officer profile named in the report headers.' : hintLevel === 2 ? 'Compare the lead investigator’s service record with the earlier case history.' : 'You are looking for context, not a suspect: establish who handled Case 27 and what they handled before it.';
+    }
+    return { stepId: step.id, title, description, actionType: step.trigger.type, targetId: step.trigger.type === 'view_record' ? undefined : step.trigger.targetId, searchTerm: step.trigger.searchTerm, hintLevel, hintText, isOptional: step.order % 10 !== 0 };
   }
   public getInvestigationStatus(): { currentActTitle: string; whatWeKnow: string[]; unresolvedQuestions: string[]; activeLeads: string[]; recentDiscoveriesCount: number; nextAction: InvestigationAction | null; } {
     const act = this.getCurrentAct();

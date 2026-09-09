@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet';
-import L from 'leaflet';
+import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Icon } from '../../common/Icon';
 import { MAP_LOCATIONS } from '../../../services/fictionalWebData';
@@ -8,8 +8,6 @@ import { MapLocation } from '../../../types/browser';
 
 interface MapRendererProps { onNavigate: (url: string) => void; }
 
-// Northbridge is fictional. These coordinates provide a stable real-world map canvas
-// while the game's fictional locations are projected onto it from their existing x/y data.
 const NORTHBRIDGE_CENTER: [number, number] = [40.7128, -74.0060];
 
 const toLatLng = (loc: MapLocation): [number, number] => [
@@ -72,10 +70,7 @@ export const MapRenderer: React.FC<MapRendererProps> = ({ onNavigate }) => {
     </header>
     <div className="flex-1 relative min-h-0">
       <MapContainer center={NORTHBRIDGE_CENTER} zoom={15} scrollWheelZoom className="absolute inset-0" zoomControl>
-        <TileLayer
-          attribution='&copy; OpenStreetMap contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+        <TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         <MapViewport location={selectedLocation} />
         <MapInteraction onClearSelection={() => setSelectedLocation(null)} />
         {filteredLocations.map(loc => <Marker key={loc.id} position={toLatLng(loc)} icon={markerIcon(loc.category, selectedLocation?.id === loc.id)} eventHandlers={{ click: e => { e.originalEvent.stopPropagation(); setSelectedLocation(loc); } }} />)}

@@ -34,8 +34,8 @@ const InvestigationGuide: React.FC = () => {
   if (!action) return null;
 
   const openLead = () => {
-    if (action.actionType === 'view_record' && action.targetId) {
-      openApp('police-records', { recordId: action.targetId });
+    if (action.actionType === 'view_record') {
+      openApp('police-records');
       return;
     }
     if (action.actionType === 'view_file' && action.targetId) {
@@ -44,6 +44,9 @@ const InvestigationGuide: React.FC = () => {
     }
     openApp('investigation-notebook');
   };
+
+  const guidanceText = action.hintText || action.description;
+  const label = action.actionType === 'search_term' ? 'Search the records' : action.actionType === 'view_file' ? 'Check the file system' : 'Review the records';
 
   return (
     <div className={`absolute left-4 bottom-16 z-[8000] ${collapsed ? 'w-auto' : 'w-[340px] max-w-[calc(100vw-2rem)]'}`}>
@@ -56,9 +59,9 @@ const InvestigationGuide: React.FC = () => {
             <button onClick={() => setCollapsed(true)} className="text-slate-500 hover:text-slate-200">—</button>
           </div>
           <div className="p-3 space-y-2.5">
-            <div className="text-sm font-semibold text-slate-100">{action.title}</div>
-            <p className="text-[11px] leading-relaxed text-slate-400">{action.description}</p>
-            <div className="text-[10px] text-slate-500 uppercase tracking-wide">A lead is guidance, not an answer. Follow the evidence and form your own theory.</div>
+            <div className="text-sm font-semibold text-slate-100">{label}</div>
+            <p className="text-[11px] leading-relaxed text-slate-400">{guidanceText}</p>
+            <div className="text-[10px] text-slate-500 uppercase tracking-wide">Follow the evidence. The lead points toward a line of inquiry, not the conclusion.</div>
             <div className="flex gap-2 pt-1">
               <button onClick={openLead} className="flex-1 px-2.5 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-semibold">Open lead</button>
               <button onClick={() => openApp('investigation-notebook')} className="px-2.5 py-1.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-[11px]">Notebook</button>

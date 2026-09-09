@@ -85,8 +85,8 @@ export function initStoryApi(
     browserDb
   };
 
-  // Expose to window for future modules or console debugging
-  if (typeof window !== 'undefined') {
+  // Expose the story API only during development for debugging.
+  if (typeof window !== 'undefined' && import.meta.env.DEV) {
     window.InvestigatorOS = api;
   }
 

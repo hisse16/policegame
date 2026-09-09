@@ -3,6 +3,7 @@ import { SaveMetadata } from '../types/game';
 import { vfs } from './vfs';
 import { browserDb } from './browserDatabase';
 import { policeDatabase } from './police/databaseEngine';
+import { storyEngine } from './story/storyEngine';
 import { DISCOVERY_STEPS } from './story/storyData';
 
 const SAVE_META_KEY = 'case27_investigation_meta';
@@ -13,9 +14,7 @@ class SaveSystem {
   private sessionStartTime = Date.now();
   private accumulatedPlaytime = 0;
 
-  constructor() {
-    this.loadPlaytime();
-  }
+  constructor() { this.loadPlaytime(); }
 
   private loadPlaytime() {
     try {
@@ -30,9 +29,7 @@ class SaveSystem {
       const total = this.accumulatedPlaytime + currentSessionSeconds;
       localStorage.setItem(PLAYTIME_KEY, total.toString());
       return total;
-    } catch {
-      return this.accumulatedPlaytime;
-    }
+    } catch { return this.accumulatedPlaytime; }
   }
 
   public getPlaytimeSeconds(): number {
@@ -43,22 +40,14 @@ class SaveSystem {
     try {
       const raw = localStorage.getItem(STORY_STATE_KEY);
       return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   }
 
-  /** StoryEngine owns narrative state; SaveSystem derives progress from it. */
   private getCanonicalStoryProgress(): number {
     const parsed = this.readStoryState();
     if (!parsed || DISCOVERY_STEPS.length === 0) return 0;
-
     const discovered = Array.isArray(parsed.discoveredStepIds) ? parsed.discoveredStepIds : [];
-    const validIds = new Set(
-      discovered.filter((id: unknown) =>
-        typeof id === 'string' && DISCOVERY_STEPS.some((step) => step.id === id)
-      )
-    );
+    const validIds = new Set(discovered.filter((id: unknown) => typeof id === 'string' && DISCOVERY_STEPS.some((step) => step.id === id)));
     return Math.min(100, Math.round((validIds.size / DISCOVERY_STEPS.length) * 100));
   }
 
@@ -67,22 +56,14 @@ class SaveSystem {
       const evidenceFiles = vfs.listDir('/home/investigator/Documents/Case_27_Evidence') || [];
       const evidenceRecords = policeDatabase.getEvidenceRecords();
       const ids = new Set<string>();
-      evidenceFiles.forEach((file) => {
-        if (file.type === 'file') ids.add(file.id);
-      });
+      evidenceFiles.forEach((file) => { if (file.type === 'file') ids.add(file.id); });
       evidenceRecords.forEach((record) => ids.add(record.id));
       return ids.size;
-    } catch {
-      return 0;
-    }
+    } catch { return 0; }
   }
 
   public hasSave(): boolean {
-    try {
-      return Boolean(localStorage.getItem(SAVE_META_KEY));
-    } catch {
-      return false;
-    }
+    try { return Boolean(localStorage.getItem(SAVE_META_KEY)); } catch { return false; }
   }
 
   public getSaveMetadata(): SaveMetadata | null {
@@ -99,9 +80,7 @@ class SaveSystem {
         storyProgress: this.getCanonicalStoryProgress(),
         evidenceCount: this.getCanonicalEvidenceCount()
       };
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   }
 
   public saveCurrentGame(reason: string = 'autosave') {
@@ -127,17 +106,44 @@ class SaveSystem {
     }
   }
 
+  /**
+   * Reset every mutable investigation surface in the current browser session,
+   * not only its localStorage representation. This matters because the browser,
+   * PRIS database and StoryEngine are long-lived singletons.
+   */
   public startNewInvestigation(): void {
     try {
       vfs.resetToDefaults();
+
       browserDb.clearHistory();
       browserDb.downloads = [];
+      browserDb.history = [];
+      browserDb.searchHistory = [];
+      browserDb.bookmarks = [];
+      browserDb.cart = [];
+      browserDb.cookies = {};
       browserDb.save();
+
+      // StoryEngine keeps a live in-memory singleton; deleting localStorage alone
+      // would otherwise leave the previous investigation active until reload.
+      storyEngine.resetState();
+
+      // Clear the PRIS mutable session state through its public API.
+      for (const record of policeDatabase.getAllRecords()) {
+        for (const note of policeDatabase.getNotesForRecord(record.id)) {
+          policeDatabase.deleteNote(record.id, note.id);
+        }
+      }
+      for (const bookmark of policeDatabase.getAllBookmarks()) {
+        policeDatabase.toggleBookmark(bookmark.recordId);
+      }
+      policeDatabase.updateBoardState({ nodes: [], edges: [] });
       localStorage.removeItem('pris_database_persistence_v2');
-      localStorage.removeItem(STORY_STATE_KEY);
+
       this.accumulatedPlaytime = 0;
       this.sessionStartTime = Date.now();
       localStorage.removeItem(PLAYTIME_KEY);
+      localStorage.removeItem(STORY_STATE_KEY);
 
       const meta: SaveMetadata = {
         hasSave: true,
@@ -162,17 +168,21 @@ class SaveSystem {
       vfs.resetToDefaults();
       browserDb.clearHistory();
       browserDb.downloads = [];
+      browserDb.history = [];
+      browserDb.searchHistory = [];
+      browserDb.bookmarks = [];
+      browserDb.cart = [];
+      browserDb.cookies = {};
       browserDb.save();
       localStorage.removeItem('investigator_os_settings');
       localStorage.removeItem('pris_database_persistence_v2');
       localStorage.removeItem(STORY_STATE_KEY);
+      storyEngine.resetState();
       sessionStorage.removeItem('securix_initial_boot');
     } catch {}
   }
 
-  public getStoryProgress(): number {
-    return this.getCanonicalStoryProgress();
-  }
+  public getStoryProgress(): number { return this.getCanonicalStoryProgress(); }
 
   /** Deprecated compatibility shim. Narrative progress cannot be assigned externally. */
   public setStoryProgress(_val: number) {

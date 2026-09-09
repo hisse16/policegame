@@ -33,6 +33,8 @@ export const FinalDeductionApp: React.FC<FinalDeductionAppProps> = ({ onClose, o
     { id: 'VEH-1987-0481', title: 'Taurus impound sheet TXR-481', type: 'Vehicle record' }
   ], []);
 
+  const requiredEvidenceSelected = readiness.requiredEvidenceIds.length > 0 && readiness.requiredEvidenceIds.every((id) => selectedEvidence.includes(id));
+
   const toggleEvidence = (id: string) => setSelectedEvidence((current) => current.includes(id) ? current.filter((x) => x !== id) : [...current, id]);
 
   const resetDraft = () => {
@@ -42,7 +44,7 @@ export const FinalDeductionApp: React.FC<FinalDeductionAppProps> = ({ onClose, o
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!readiness.ready || !who || !what || !when || !where || !why || !how) return;
+    if (!readiness.ready || !requiredEvidenceSelected || !who || !what || !when || !where || !why || !how) return;
     setIsSubmitting(true);
     window.setTimeout(() => {
       const submission: DeductionSubmission = { whoSuspectId: who, whatCrimeType: what, whenDate: when, whereLocationId: where, whyMotive: why, howMethod: how, keyEvidenceIds: selectedEvidence };
@@ -83,16 +85,18 @@ export const FinalDeductionApp: React.FC<FinalDeductionAppProps> = ({ onClose, o
           </div>
 
           <div className="p-4 bg-slate-900/80 border border-slate-800 rounded-lg space-y-3">
-            <div className="flex items-center justify-between"><div><div className="text-[10px] font-bold text-blue-400 uppercase">Evidence chain</div><div className="text-[11px] text-slate-400">Select the exhibits that make your conclusion defensible.</div></div><span className="text-[10px] font-mono text-slate-500">{selectedEvidence.length} selected</span></div>
+            <div className="flex items-center justify-between"><div><div className="text-[10px] font-bold text-blue-400 uppercase">Evidence chain</div><div className="text-[11px] text-slate-400">Select the exhibits that make your conclusion defensible. All five required exhibits must be selected.</div></div><span className="text-[10px] font-mono text-slate-500">{selectedEvidence.length} selected</span></div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
               {evidenceItems.map((item) => {
                 const selected = selectedEvidence.includes(item.id);
-                return <button type="button" key={item.id} onClick={() => toggleEvidence(item.id)} className={`p-2.5 text-left rounded border transition-colors ${selected ? 'bg-blue-950/70 border-blue-600 text-blue-100' : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'}`}><div className="flex gap-2"><span className={`w-3.5 h-3.5 mt-0.5 rounded border flex items-center justify-center text-[9px] ${selected ? 'bg-blue-600 border-blue-400 text-white' : 'border-slate-700'}`}>{selected ? '✓' : ''}</span><span><span className="block text-xs font-bold">{item.title}</span><span className="block text-[10px] font-mono text-slate-500">{item.id} • {item.type}</span></span></div></button>;
+                const required = readiness.requiredEvidenceIds.includes(item.id);
+                return <button type="button" key={item.id} onClick={() => toggleEvidence(item.id)} className={`p-2.5 text-left rounded border transition-colors ${selected ? 'bg-blue-950/70 border-blue-600 text-blue-100' : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'}`}><div className="flex gap-2"><span className={`w-3.5 h-3.5 mt-0.5 rounded border flex items-center justify-center text-[9px] ${selected ? 'bg-blue-600 border-blue-400 text-white' : 'border-slate-700'}`}>{selected ? '✓' : ''}</span><span><span className="block text-xs font-bold">{item.title}{required && <span className="ml-1 text-[9px] uppercase text-amber-400">Required</span>}</span><span className="block text-[10px] font-mono text-slate-500">{item.id} • {item.type}</span></span></div></button>;
               })}
             </div>
+            {!requiredEvidenceSelected && readiness.ready && <div className="text-[11px] text-amber-300">Complete the required evidence chain before submitting the reconstruction.</div>}
           </div>
 
-          <div className="flex items-center justify-between gap-3 pt-1"><button type="button" onClick={resetDraft} className="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded text-xs text-slate-300">Clear draft</button><button type="submit" disabled={!readiness.ready || isSubmitting || !who || !what || !when || !where || !why || !how} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded font-bold text-xs uppercase tracking-wider">{isSubmitting ? 'Evaluating…' : 'Submit Reconstruction'}</button></div>
+          <div className="flex items-center justify-between gap-3 pt-1"><button type="button" onClick={resetDraft} className="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded text-xs text-slate-300">Clear draft</button><button type="submit" disabled={!readiness.ready || !requiredEvidenceSelected || isSubmitting || !who || !what || !when || !where || !why || !how} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded font-bold text-xs uppercase tracking-wider">{isSubmitting ? 'Evaluating…' : 'Submit Reconstruction'}</button></div>
         </form>
 
         {result && <div className={`p-5 rounded-lg border space-y-4 ${result.isFullyCorrect ? 'bg-emerald-950/40 border-emerald-700/80' : 'bg-slate-900 border-amber-800/80'}`}>

@@ -179,7 +179,7 @@ class StoryEngine {
       if (
         step.trigger.type === 'view_record' &&
         step.trigger.targetId &&
-        (step.trigger.targetId.toLowerCase() === cleanId || cleanId.includes(step.trigger.targetId.toLowerCase())) &&
+        step.trigger.targetId.toLowerCase().trim() === cleanId &&
         !this.state.discoveredStepIds.includes(step.id)
       ) {
         this.executeStep(step);
@@ -203,7 +203,13 @@ class StoryEngine {
       if (
         step.trigger.type === 'search_term' &&
         step.trigger.searchTerm &&
-        clean.includes(step.trigger.searchTerm.toLowerCase()) &&
+        (() => {
+          const searchTerm = step.trigger.searchTerm.toLowerCase().trim();
+          if (!searchTerm) return false;
+          if (searchTerm.includes(' ')) return clean.includes(searchTerm);
+          const escaped = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          return new RegExp(`\\b${escaped}\\b`, 'i').test(clean);
+        })() &&
         !this.state.discoveredStepIds.includes(step.id)
       ) {
         this.executeStep(step);
@@ -301,14 +307,12 @@ class StoryEngine {
       this.state.flags[step.flagGranted] = true;
     }
 
-    // Add facts
     step.factsAdded.forEach((factId) => {
       if (!this.state.discoveredFactIds.includes(factId)) {
         this.state.discoveredFactIds.push(factId);
       }
     });
 
-    // Add questions
     if (step.questionsAdded) {
       step.questionsAdded.forEach((qid) => {
         if (!this.state.openQuestionIds.includes(qid) && !this.state.resolvedQuestionIds.includes(qid)) {
@@ -317,7 +321,6 @@ class StoryEngine {
       });
     }
 
-    // Resolve questions
     if (step.questionsResolved) {
       step.questionsResolved.forEach((qid) => {
         this.state.openQuestionIds = this.state.openQuestionIds.filter((id) => id !== qid);
@@ -327,7 +330,6 @@ class StoryEngine {
       });
     }
 
-    // Add timeline events
     if (step.timelineEventsAdded) {
       step.timelineEventsAdded.forEach((evtId) => {
         if (!this.state.timelineEventIds.includes(evtId)) {
@@ -336,7 +338,6 @@ class StoryEngine {
       });
     }
 
-    // Add contradiction
     if (step.contradictionAdded && !this.state.discoveredContradictionIds.includes(step.contradictionAdded)) {
       this.state.discoveredContradictionIds.push(step.contradictionAdded);
       if (this.notificationHandler) {
@@ -348,7 +349,6 @@ class StoryEngine {
       }
     }
 
-    // Add leads
     if (step.leadsAdded) {
       step.leadsAdded.forEach((leadId) => {
         if (!this.state.activeLeadIds.includes(leadId)) {
@@ -362,8 +362,15 @@ class StoryEngine {
     const actSteps = DISCOVERY_STEPS.filter((s) => s.act === this.state.currentAct);
     const discoveredInAct = actSteps.filter((s) => this.state.discoveredStepIds.includes(s.id));
 
-    // If 80% of current act is discovered, advance act if not at 6
-    if (discoveredInAct.length >= Math.ceil(actSteps.length * 0.8) && this.state.currentAct < 6) {
+    // Keep the flexible 80% threshold, but never allow an explicit act-completion
+    // step to be skipped when the story data defines one.
+    const completionStep = actSteps.find(
+      (step) => step.flagGranted === `flag_act_${this.state.currentAct}_completed`
+    );
+    const completionDiscovered = !completionStep || this.state.discoveredStepIds.includes(completionStep.id);
+    const thresholdMet = discoveredInAct.length >= Math.ceil(actSteps.length * 0.8);
+
+    if (thresholdMet && completionDiscovered && this.state.currentAct < 6) {
       const nextActNum = this.state.currentAct + 1;
       const finishedAct = this.getCurrentAct();
       this.state.currentAct = nextActNum;
@@ -446,7 +453,6 @@ class StoryEngine {
     currentLevel: number;
     hintText: string;
   } | null {
-    // Find earliest uncompleted step in current act
     const nextStep = DISCOVERY_STEPS.find(
       (s) => s.act <= this.state.currentAct && !this.state.discoveredStepIds.includes(s.id)
     );
@@ -495,7 +501,6 @@ class StoryEngine {
     const whyCorrect = sub.whyMotive.toUpperCase().includes('AUDIT') || sub.whyMotive.toUpperCase().includes('THEFT') || sub.whyMotive.toUpperCase().includes('CROWNLINE') || sub.whyMotive.toUpperCase().includes('SILENCE');
     const howCorrect = sub.howMethod.toUpperCase().includes('PULLOVER') || sub.howMethod.toUpperCase().includes('PATROL') || sub.howMethod.toUpperCase().includes('CAR') || sub.howMethod.toUpperCase().includes('INTERCEPTION');
 
-    // Calculate evidence overlap
     const matchedEvidence = sub.keyEvidenceIds.filter((e) => sol.keyEvidenceIds.includes(e));
     const evidenceScore = Math.round((matchedEvidence.length / sol.keyEvidenceIds.length) * 100);
 
@@ -607,17 +612,17 @@ class StoryEngine {
   public revealEvidence(id: string): void {
     const rec = policeDatabase.getRecord(id) as EvidenceRecord | null;
     if (rec) {
-      policeDatabase.updateRecord(id, { status: 'IN_STORAGE', currentStatus: 'IN_STORAGE' } as any);
+      policeDatabase.updateRecord(id, { status: 'IN_STORAGE', currentStatus: 'IN_STORAGE' });
       this.onViewRecord(id);
     }
   }
 
   public hideEvidence(id: string): void {
-    policeDatabase.updateRecord(id, { status: 'ARCHIVED', currentStatus: 'ARCHIVED' } as any);
+    policeDatabase.updateRecord(id, { status: 'ARCHIVED', currentStatus: 'ARCHIVED' });
   }
 
   public archiveEvidence(id: string): void {
-    policeDatabase.updateRecord(id, { status: 'ARCHIVED', isArchived: true, currentStatus: 'ARCHIVED' } as any);
+    policeDatabase.updateRecord(id, { status: 'ARCHIVED', isArchived: true, currentStatus: 'ARCHIVED' });
   }
 
   public addEvidenceAnalysis(evidenceId: string, analysis: ForensicReport): void {
@@ -845,6 +850,6 @@ class StoryEngine {
 
 export const storyEngine = new StoryEngine();
 
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && import.meta.env.DEV) {
   (window as any).storyEngine = storyEngine;
 }

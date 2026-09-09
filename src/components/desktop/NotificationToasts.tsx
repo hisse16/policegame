@@ -1,17 +1,22 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useOS } from '../../context/OSContext';
 import { Icon } from '../common/Icon';
+import { playSound } from '../../services/soundService';
 
 export const NotificationToasts: React.FC = () => {
   const { notifications, dismissNotification } = useOS();
+  const activeToasts = notifications.filter((n) => !n.read).slice(-2);
 
-  // Show only unread notifications created within the last 15 seconds as transient popups
-  const activeToasts = notifications.filter((n) => !n.read).slice(-3);
+  useEffect(() => {
+    const newest = activeToasts[activeToasts.length - 1];
+    if (!newest) return;
+    playSound(newest.type === 'error' ? 'error' : newest.type === 'warning' ? 'warning' : newest.type === 'success' ? 'success' : 'notify');
+  }, [activeToasts.map((n) => n.id).join('|')]);
 
   if (activeToasts.length === 0) return null;
 
   return (
-    <div className="fixed top-9 right-3 z-9999 flex flex-col gap-2 pointer-events-none select-none max-w-sm w-full">
+    <div className="fixed top-9 right-3 z-[9999] flex flex-col gap-1.5 pointer-events-none select-none max-w-[360px] w-full">
       {activeToasts.map((notif) => {
         const getIcon = () => {
           if (notif.type === 'error') return { icon: 'AlertCircle', color: 'text-rose-400' };
@@ -19,33 +24,15 @@ export const NotificationToasts: React.FC = () => {
           if (notif.type === 'success') return { icon: 'CheckCircle2', color: 'text-emerald-400' };
           return { icon: 'Info', color: 'text-blue-400' };
         };
-
         const { icon, color } = getIcon();
-
         return (
-          <div
-            key={notif.id}
-            className="pointer-events-auto bg-slate-900/95 border border-slate-700/80 rounded-lg p-3 shadow-2xl backdrop-blur-md flex items-start gap-3 transition-all animate-in slide-in-from-top-2 duration-200"
-          >
-            <div className="p-1 rounded bg-slate-800 shrink-0">
-              <Icon name={icon} className={`w-4 h-4 ${color}`} />
-            </div>
-
+          <div key={notif.id} className="pointer-events-auto bg-slate-950/96 border border-slate-800 rounded-md px-3 py-2.5 shadow-xl backdrop-blur-md flex items-start gap-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
+            <div className="p-1 rounded bg-slate-900 shrink-0"><Icon name={icon} className={`w-3.5 h-3.5 ${color}`} /></div>
             <div className="flex-1 overflow-hidden">
-              <div className="font-semibold text-slate-100 text-xs truncate">
-                {notif.title}
-              </div>
-              <div className="text-[11px] text-slate-300 mt-0.5 leading-snug">
-                {notif.message}
-              </div>
+              <div className="font-medium text-slate-200 text-[11px] truncate">{notif.title}</div>
+              <div className="text-[10px] text-slate-400 mt-0.5 leading-snug">{notif.message}</div>
             </div>
-
-            <button
-              onClick={() => dismissNotification(notif.id)}
-              className="text-slate-400 hover:text-white p-0.5 rounded hover:bg-slate-800 transition-colors"
-            >
-              <Icon name="X" className="w-3 h-3" />
-            </button>
+            <button onClick={() => dismissNotification(notif.id)} aria-label="Dismiss" className="text-slate-600 hover:text-slate-300 p-0.5 rounded"><Icon name="X" className="w-3 h-3" /></button>
           </div>
         );
       })}

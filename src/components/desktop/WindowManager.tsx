@@ -14,6 +14,8 @@ import { EvidenceLabApp } from '../apps/evidence/EvidenceLabApp';
 import { InvestigationBoardApp } from '../apps/board/InvestigationBoardApp';
 import { InvestigationNotebookApp } from '../apps/notebook/InvestigationNotebookApp';
 import { FinalDeductionApp } from '../apps/deduction/FinalDeductionApp';
+import { PoliceMailApp } from '../apps/mail/PoliceMailApp';
+import { InvestigationMapApp } from '../apps/map/InvestigationMapApp';
 
 export const WindowManager: React.FC = () => {
   const { windows, openApp, closeWindow } = useOS();
@@ -21,7 +23,7 @@ export const WindowManager: React.FC = () => {
   const renderAppContent = (appId: string, windowId: string, params?: Record<string, any>) => {
     switch (appId) {
       case 'police-records':
-        return <PoliceApp initialCaseId={params?.caseId || params?.recordId} />;
+        return <PoliceApp windowId={windowId} params={params} initialCaseId={params?.caseId || params?.recordId} />;
       case 'evidence-lab':
         return <EvidenceLabApp windowId={windowId} params={params} />;
       case 'investigation-board':
@@ -29,15 +31,39 @@ export const WindowManager: React.FC = () => {
       case 'investigation-notebook':
         return (
           <InvestigationNotebookApp
-            onOpenRecord={(recId) => openApp('police-records', { recordId: recId })}
+            onOpenRecord={(recId) => {
+              if (recId.startsWith('MAIL-') || recId.startsWith('EML-')) {
+                openApp('police-mail', { emailId: recId });
+              } else if (recId.startsWith('LOC-')) {
+                openApp('investigation-map', { locationId: recId });
+              } else if (recId.startsWith('EV-') || recId.startsWith('E-')) {
+                openApp('evidence-lab', { evidenceId: recId });
+              } else {
+                openApp('police-records', { recordId: recId });
+              }
+            }}
             onOpenApp={openApp}
           />
         );
+      case 'police-mail':
+        return <PoliceMailApp windowId={windowId} params={params} />;
+      case 'investigation-map':
+        return <InvestigationMapApp windowId={windowId} initialLocationId={params?.locationId} params={params} />;
       case 'final-deduction':
         return (
           <FinalDeductionApp
             onClose={() => closeWindow(windowId)}
-            onOpenRecord={(recId) => openApp('police-records', { recordId: recId })}
+            onOpenRecord={(recId) => {
+              if (recId.startsWith('MAIL-') || recId.startsWith('EML-')) {
+                openApp('police-mail', { emailId: recId });
+              } else if (recId.startsWith('LOC-')) {
+                openApp('investigation-map', { locationId: recId });
+              } else if (recId.startsWith('EV-') || recId.startsWith('E-')) {
+                openApp('evidence-lab', { evidenceId: recId });
+              } else {
+                openApp('police-records', { recordId: recId });
+              }
+            }}
           />
         );
       case 'file-manager':

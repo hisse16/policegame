@@ -2,6 +2,7 @@ import React from 'react';
 import { Icon } from '../../../common/Icon';
 import { LocationRecord, AnyRecord } from '../../../../types/police';
 import { policeDatabase } from '../../../../services/police/databaseEngine';
+import { useOS } from '../../../../context/OSContext';
 
 interface LocationDetailViewProps {
   location: LocationRecord;
@@ -16,6 +17,7 @@ export const LocationDetailView: React.FC<LocationDetailViewProps> = ({
   onExportRecord,
   onBack
 }) => {
+  const { openApp } = useOS();
   const isBookmarked = policeDatabase.isBookmarked(location.id);
 
   return (
@@ -33,7 +35,34 @@ export const LocationDetailView: React.FC<LocationDetailViewProps> = ({
             <span className="text-slate-200 font-bold">{location.id}</span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => openApp('investigation-map', { locationId: location.id, search: location.address })}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs bg-indigo-950/80 border border-indigo-700 text-indigo-300 hover:bg-indigo-900 transition-colors font-bold"
+              title="Locate on GIS Map"
+            >
+              <Icon name="MapPin" className="w-3.5 h-3.5 text-indigo-400" />
+              <span>GIS MAP</span>
+            </button>
+
+            <button
+              onClick={() => openApp('investigation-board', { focusRecordId: location.id })}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs bg-blue-950/80 border border-blue-700 text-blue-300 hover:bg-blue-900 transition-colors font-bold"
+              title="Pin Location to Investigation Board"
+            >
+              <Icon name="GitMerge" className="w-3.5 h-3.5 text-blue-400" />
+              <span>BOARD</span>
+            </button>
+
+            <button
+              onClick={() => openApp('police-mail', { search: location.address })}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs bg-amber-950/70 border border-amber-800 text-amber-300 hover:bg-amber-900 transition-colors"
+              title="Search emails and memos mentioning this address"
+            >
+              <Icon name="Mail" className="w-3.5 h-3.5 text-amber-400" />
+              <span>MEMOS</span>
+            </button>
+
             <button
               onClick={() => policeDatabase.toggleBookmark(location.id)}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs border transition-colors ${

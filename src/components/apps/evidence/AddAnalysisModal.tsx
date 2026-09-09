@@ -33,6 +33,7 @@ export const AddAnalysisModal: React.FC<AddAnalysisModalProps> = ({
     const newReport: ForensicReport = {
       id: `LAB-${Date.now().toString().slice(-6)}`,
       reportType,
+      title: `${reportType} Forensic Analysis - Item ${evidenceId}`,
       dateConducted: now.split(' ')[0],
       labName,
       analystName,

@@ -733,6 +733,11 @@ class StoryEngine {
     policeDatabase.updateBoardNode(nodeId, { x, y });
   }
 
+  public updateBoardNode(nodeId: string, partial: Partial<BoardNode>): void {
+    policeDatabase.updateBoardNode(nodeId, partial);
+    this.notify();
+  }
+
   public createBoardConnection(
     from: string,
     to: string,

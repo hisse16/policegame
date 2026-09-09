@@ -223,7 +223,7 @@ export interface ForensicReport {
     | 'GENERAL'
     | string;
   reportType?: string;
-  title: string;
+  title?: string;
   laboratory?: string;
   labName?: string;
   technician?: string;
@@ -295,8 +295,6 @@ export interface EvidenceRecord extends BaseRecord {
   discrepancyFlag?: string;
   isArchived?: boolean;
   notes?: string;
-  status?: string;
-  tags?: string[];
 }
 
 export interface VehicleRecord extends BaseRecord {

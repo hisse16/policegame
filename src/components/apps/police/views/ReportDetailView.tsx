@@ -2,6 +2,7 @@ import React from 'react';
 import { Icon } from '../../../common/Icon';
 import { ReportRecord, AnyRecord } from '../../../../types/police';
 import { policeDatabase } from '../../../../services/police/databaseEngine';
+import { useOS } from '../../../../context/OSContext';
 
 interface ReportDetailViewProps {
   report: ReportRecord;
@@ -16,6 +17,7 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
   onExportRecord,
   onBack
 }) => {
+  const { openApp } = useOS();
   const isBookmarked = policeDatabase.isBookmarked(report.id);
   const officer = policeDatabase.getRecord(report.authorOfficerId);
   const linkedCase = report.caseId ? policeDatabase.getRecord(report.caseId) : null;
@@ -38,7 +40,34 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
           <span className="text-slate-200 font-bold">{report.reportNumber}</span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => openApp('investigation-board', { focusRecordId: report.id })}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs bg-blue-950/80 border border-blue-700 text-blue-300 hover:bg-blue-900 transition-colors font-bold"
+            title="Pin Report to Investigation Board"
+          >
+            <Icon name="GitMerge" className="w-3.5 h-3.5 text-blue-400" />
+            <span>BOARD</span>
+          </button>
+
+          <button
+            onClick={() => openApp('investigation-map', { search: report.location })}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs bg-indigo-950/80 border border-indigo-700 text-indigo-300 hover:bg-indigo-900 transition-colors font-bold"
+            title="Locate incident scene on GIS Map"
+          >
+            <Icon name="MapPin" className="w-3.5 h-3.5 text-indigo-400" />
+            <span>GIS MAP</span>
+          </button>
+
+          <button
+            onClick={() => openApp('police-mail', { search: report.reportNumber })}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs bg-amber-950/70 border border-amber-800 text-amber-300 hover:bg-amber-900 transition-colors"
+            title="Search related memos"
+          >
+            <Icon name="Mail" className="w-3.5 h-3.5 text-amber-400" />
+            <span>MEMOS</span>
+          </button>
+
           <button
             onClick={() => policeDatabase.toggleBookmark(report.id)}
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs border transition-colors ${
@@ -119,7 +148,18 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
             </div>
             <div>
               <span className="text-[10px] text-slate-500 block">INCIDENT SCENE / LOCATION</span>
-              <span className="text-slate-200 font-semibold">{report.location}</span>
+              <div className="flex items-center justify-between gap-2 mt-0.5">
+                <span className="text-slate-200 font-semibold truncate">{report.location}</span>
+                <button
+                  type="button"
+                  onClick={() => openApp('investigation-map', { search: report.location })}
+                  className="text-[10px] text-blue-400 hover:text-blue-300 flex items-center gap-1 shrink-0 px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 transition-colors font-mono"
+                  title="Plot on Map"
+                >
+                  <Icon name="MapPin" className="w-2.5 h-2.5 text-indigo-400" />
+                  <span>Map</span>
+                </button>
+              </div>
             </div>
           </div>
 

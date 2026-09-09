@@ -397,6 +397,14 @@ export const Desktop: React.FC<{ children: React.ReactNode }> = ({ children }) =
           const getFileIcon = (node: VFSNode) => {
             if (node.type === 'dir') return 'Folder';
             const name = node.name.toLowerCase();
+            if (name.endsWith('.desktop')) {
+              if (name.includes('mail')) return 'Mail';
+              if (name.includes('map')) return 'Map';
+              if (name.includes('pris') || name.includes('police')) return 'Shield';
+              if (name.includes('evidence')) return 'Microscope';
+              if (name.includes('board')) return 'GitMerge';
+              return 'AppWindow';
+            }
             if (name.endsWith('.txt') || name.endsWith('.log')) return 'FileText';
             if (name.endsWith('.pdf')) return 'BookOpen';
             if (name.endsWith('.svg') || name.endsWith('.png') || name.endsWith('.jpg')) return 'Image';
@@ -408,6 +416,7 @@ export const Desktop: React.FC<{ children: React.ReactNode }> = ({ children }) =
           const getFileColor = (node: VFSNode) => {
             if (node.type === 'dir') return 'text-amber-400';
             const name = node.name.toLowerCase();
+            if (name.endsWith('.desktop')) return 'text-sky-400';
             if (name.endsWith('.pdf')) return 'text-red-400';
             if (name.endsWith('.svg') || name.endsWith('.png')) return 'text-emerald-400';
             if (name.endsWith('.wav')) return 'text-purple-400';

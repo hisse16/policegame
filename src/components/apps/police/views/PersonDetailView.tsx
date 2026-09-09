@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Icon } from '../../../common/Icon';
 import { PersonRecord, AnyRecord } from '../../../../types/police';
 import { policeDatabase } from '../../../../services/police/databaseEngine';
+import { useOS } from '../../../../context/OSContext';
 
 interface PersonDetailViewProps {
   person: PersonRecord;
@@ -16,6 +17,7 @@ export const PersonDetailView: React.FC<PersonDetailViewProps> = ({
   onExportRecord,
   onBack
 }) => {
+  const { openApp } = useOS();
   const [activeTab, setActiveTab] = useState<'profile' | 'criminal' | 'associated' | 'timeline' | 'notes'>('profile');
   const [newNote, setNewNote] = useState('');
   const isBookmarked = policeDatabase.isBookmarked(person.id);
@@ -48,7 +50,34 @@ export const PersonDetailView: React.FC<PersonDetailViewProps> = ({
             <span className="text-slate-200 font-bold">{person.id}</span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => openApp('investigation-board', { focusRecordId: person.id })}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs bg-blue-950/80 border border-blue-700 text-blue-300 hover:bg-blue-900 transition-colors font-bold"
+              title="Pin Person to Investigation Board"
+            >
+              <Icon name="GitMerge" className="w-3.5 h-3.5 text-blue-400" />
+              <span>BOARD</span>
+            </button>
+
+            <button
+              onClick={() => openApp('investigation-map', { search: person.addresses?.[0] || person.lastName })}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs bg-indigo-950/80 border border-indigo-700 text-indigo-300 hover:bg-indigo-900 transition-colors font-bold"
+              title="Locate registered address on GIS Map"
+            >
+              <Icon name="MapPin" className="w-3.5 h-3.5 text-indigo-400" />
+              <span>GIS MAP</span>
+            </button>
+
+            <button
+              onClick={() => openApp('police-mail', { search: person.lastName })}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs bg-amber-950/70 border border-amber-800 text-amber-300 hover:bg-amber-900 transition-colors"
+              title="Search emails and memos mentioning this person"
+            >
+              <Icon name="Mail" className="w-3.5 h-3.5 text-amber-400" />
+              <span>MEMOS</span>
+            </button>
+
             <button
               onClick={() => policeDatabase.toggleBookmark(person.id)}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs border transition-colors ${
@@ -221,8 +250,17 @@ export const PersonDetailView: React.FC<PersonDetailViewProps> = ({
                   <div className="space-y-1.5">
                     {person.addresses && person.addresses.length > 0 ? (
                       person.addresses.map((addr, idx) => (
-                        <div key={idx} className="p-2 rounded bg-slate-900 border border-slate-800 text-slate-200">
-                          {addr}
+                        <div key={idx} className="p-2 rounded bg-slate-900 border border-slate-800 text-slate-200 flex items-center justify-between gap-2">
+                          <span className="truncate">{addr}</span>
+                          <button
+                            type="button"
+                            onClick={() => openApp('investigation-map', { search: addr })}
+                            className="text-[10px] text-blue-400 hover:text-blue-300 flex items-center gap-1 shrink-0 px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 transition-colors"
+                            title="View location on map"
+                          >
+                            <Icon name="MapPin" className="w-2.5 h-2.5 text-indigo-400" />
+                            <span>Map</span>
+                          </button>
                         </div>
                       ))
                     ) : (

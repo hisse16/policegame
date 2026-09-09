@@ -307,6 +307,14 @@ export const OSProvider: React.FC<{
     }
 
     const name = node.name.toLowerCase();
+    if (name.endsWith('.desktop')) {
+      const content = node.content || '';
+      const execMatch = content.match(/Exec=([a-zA-Z0-9_-]+)/);
+      if (execMatch && execMatch[1]) {
+        openApp(execMatch[1]);
+        return;
+      }
+    }
     if (name.endsWith('.txt') || name.endsWith('.log') || name.endsWith('.md') || 
         name.endsWith('.json') || name.endsWith('.csv') || name.endsWith('.conf') || 
         name.endsWith('.js') || name.endsWith('.css')) {

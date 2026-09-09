@@ -24,13 +24,19 @@ import { Icon } from '../../common/Icon';
 
 interface PoliceAppProps {
   initialCaseId?: string;
+  windowId?: string;
+  params?: Record<string, any>;
 }
 
-export const PoliceApp: React.FC<PoliceAppProps> = ({ initialCaseId }) => {
-  const [activeSection, setActiveSection] = useState<PrisSectionId>('dashboard');
-  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(initialCaseId || null);
+export const PoliceApp: React.FC<PoliceAppProps> = ({ initialCaseId, params }) => {
+  const [activeSection, setActiveSection] = useState<PrisSectionId>(
+    (params?.section as PrisSectionId) || 'dashboard'
+  );
+  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(
+    params?.recordId || params?.caseId || initialCaseId || null
+  );
   const [historyStack, setHistoryStack] = useState<string[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(params?.search || '');
   const [showHelp, setShowHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -43,6 +49,29 @@ export const PoliceApp: React.FC<PoliceAppProps> = ({ initialCaseId }) => {
     });
     return unsub;
   }, []);
+
+  // Handle incoming routing params
+  useEffect(() => {
+    if (!params) return;
+    const targetId =
+      params.recordId ||
+      params.caseId ||
+      params.personId ||
+      params.evidenceId ||
+      params.reportId ||
+      params.locationId ||
+      params.vehicleId;
+
+    if (targetId) {
+      handleSelectRecord(targetId);
+    } else if (params.section) {
+      handleSelectSection(params.section as PrisSectionId);
+    }
+    if (params.search) {
+      setSearchQuery(params.search);
+      handleSearchSubmit(params.search);
+    }
+  }, [params]);
 
   const handleSelectRecord = (recordId: string) => {
     policeDatabase.recordView(recordId);

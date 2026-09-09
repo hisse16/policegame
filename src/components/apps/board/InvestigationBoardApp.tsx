@@ -159,6 +159,22 @@ export const InvestigationBoardApp: React.FC<InvestigationBoardAppProps> = ({ pa
   };
 
   const handleOpenRecordInApp = (recordId: string) => {
+    if (recordId.startsWith('MAIL-') || recordId.startsWith('EML-')) {
+      openApp('police-mail', { emailId: recordId });
+      return;
+    }
+    if (recordId.startsWith('LOC-')) {
+      openApp('investigation-map', { locationId: recordId });
+      return;
+    }
+    if (recordId.startsWith('EV-') || recordId.startsWith('E-')) {
+      openApp('evidence-lab', { evidenceId: recordId });
+      return;
+    }
+    if (recordId.startsWith('CASE-')) {
+      openApp('police-records', { recordId, tab: 'cases' });
+      return;
+    }
     const rec = policeDatabase.getRecord(recordId);
     if (rec && rec.type === 'evidence') {
       openApp('evidence-lab', { evidenceId: recordId });

@@ -312,6 +312,79 @@ CCTV captures and dispatch recordings must be stored in the dedicated user folde
 
 CONFIDENTIAL - POLICE USE ONLY`
   },
+  {
+    id: 'f_desktop_mail',
+    name: 'Police_Mail.desktop',
+    path: '/home/investigator/Desktop/Police_Mail.desktop',
+    type: 'file',
+    size: 240,
+    mimeType: 'application/x-desktop',
+    createdAt: '2026-09-08 08:00:00',
+    updatedAt: '2026-09-08 08:00:00',
+    accessedAt: '2026-09-08 08:00:00',
+    permissions: '-rwxr-xr-x',
+    owner: 'investigator',
+    group: 'investigator',
+    content: `[Desktop Entry]
+Name=Police Mail
+Exec=police-mail
+Icon=Mail
+Type=Application
+Categories=Office;Communication;`
+  },
+  {
+    id: 'f_desktop_map',
+    name: 'Investigation_Map.desktop',
+    path: '/home/investigator/Desktop/Investigation_Map.desktop',
+    type: 'file',
+    size: 260,
+    mimeType: 'application/x-desktop',
+    createdAt: '2026-09-08 08:00:00',
+    updatedAt: '2026-09-08 08:00:00',
+    accessedAt: '2026-09-08 08:00:00',
+    permissions: '-rwxr-xr-x',
+    owner: 'investigator',
+    group: 'investigator',
+    content: `[Desktop Entry]
+Name=Investigation Map
+Exec=investigation-map
+Icon=Map
+Type=Application
+Categories=System;Investigation;`
+  },
+  {
+    id: 'f_gis_sector_report',
+    name: 'Northbridge_GIS_Sector_Report.txt',
+    path: '/home/investigator/Desktop/Northbridge_GIS_Sector_Report.txt',
+    type: 'file',
+    size: 1420,
+    mimeType: 'text/plain',
+    createdAt: '2026-09-08 08:15:00',
+    updatedAt: '2026-09-08 08:15:00',
+    accessedAt: '2026-09-08 08:15:00',
+    permissions: '-rw-r--r--',
+    owner: 'investigator',
+    group: 'investigator',
+    content: `NORTHBRIDGE DEPARTMENT OF PUBLIC WORKS & GIS SURVEY DIVISION
+============================================================
+MEMORANDUM: WARD BOUNDARIES & CANAL ROAD JURISDICTION
+DATED: SEPTEMBER 8, 2026
+
+1. SECTOR 4 WETLANDS & CANAL ROAD CULVERT
+The section of Canal Road adjoining Drainage Culvert #9 (GIS Coord: X:750, Y:520) borders the boundary between Northbridge Municipal jurisdiction and the Crownline Logistics private siding easement.
+
+HISTORICAL INCIDENT CROSS-REFERENCE (CASE-1998-027):
+- 1998-09-14: 911 report CAD-98-8820 indicated a vehicle stopped with hazard lights flashing at 22:45.
+- 1998-09-14: Unit 304 logged dispatch at 22:48. Log shows arrival at 23:02.
+- CONTRADICTION NOTED: Dispatch log shows a manual supervisor override timestamped 23:15 by Terminal OPR-01 claiming 'Gone on arrival'. Unit 304 mileage report showed no odometer advancement.
+- 1998-10-02: Abandoned 1994 Ford Taurus (TXR-481) recovered 60 meters east of culvert, partially submerged in marsh weeds.
+
+2. CROWNLINE DEPOT GATE LOGS
+Security gate logs from Crownline Depot (Gate 3, GIS Coord: X:880, Y:430) on Sept 14, 1998, logged entry of White Chevrolet Caprice (Plate: KLY-902) at 23:30. Driver listed: V. Caine. Vehicle was authorized under recurring subcontractor badge SEC-VANCE-89.
+
+3. WORKSTATION MAP SYSTEM
+Use the 'Investigation Map' desktop tool to overlay CAD dispatch points and toggle historical eras (1998, 2003, 2004, 2026).`
+  },
 
   // Documents files
   {

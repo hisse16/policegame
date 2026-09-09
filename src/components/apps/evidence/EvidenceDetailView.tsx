@@ -6,6 +6,7 @@ import { LogTransferModal } from './LogTransferModal';
 import { AddAnalysisModal } from './AddAnalysisModal';
 import { policeDatabase } from '../../../services/police/databaseEngine';
 import { vfs } from '../../../services/vfs';
+import { useOS } from '../../../context/OSContext';
 
 interface EvidenceDetailViewProps {
   evidence: EvidenceRecord;
@@ -24,6 +25,7 @@ export const EvidenceDetailView: React.FC<EvidenceDetailViewProps> = ({
   onOpenInBoard,
   onRefresh
 }) => {
+  const { openApp } = useOS();
   const [activeTab, setActiveTab] = useState<'overview' | 'custody' | 'forensics' | 'photos' | 'links'>('overview');
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showAnalysisModal, setShowAnalysisModal] = useState(false);
@@ -284,7 +286,18 @@ export const EvidenceDetailView: React.FC<EvidenceDetailViewProps> = ({
               </div>
 
               <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800 space-y-1">
-                <span className="text-[10px] font-mono text-slate-500 uppercase">Recovery Location</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono text-slate-500 uppercase">Recovery Location</span>
+                  <button
+                    type="button"
+                    onClick={() => openApp('investigation-map', { search: evidence.collectionLocation })}
+                    className="text-[10px] font-mono text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
+                    title="Plot on Northbridge GIS Map"
+                  >
+                    <Icon name="MapPin" className="w-2.5 h-2.5" />
+                    <span>GIS Map</span>
+                  </button>
+                </div>
                 <p className="text-xs font-mono font-semibold text-slate-200">
                   {evidence.collectionLocation}
                 </p>

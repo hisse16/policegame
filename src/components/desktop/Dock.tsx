@@ -8,6 +8,8 @@ const PINNED_APPS = [
   'evidence-lab',
   'investigation-board',
   'investigation-notebook',
+  'police-mail',
+  'investigation-map',
   'file-manager',
   'terminal',
   'browser',

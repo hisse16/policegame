@@ -42,10 +42,7 @@ class SaveSystem {
     return this.accumulatedPlaytime + currentSessionSeconds;
   }
 
-  /**
-   * StoryEngine owns narrative state. SaveSystem derives the displayed
-   * progress from that canonical state instead of keeping a second counter.
-   */
+  /** StoryEngine owns narrative state; SaveSystem derives progress from it. */
   private getCanonicalStoryProgress(): number {
     try {
       const raw = localStorage.getItem(STORY_STATE_KEY);
@@ -53,11 +50,13 @@ class SaveSystem {
 
       const parsed = JSON.parse(raw);
       const discovered = Array.isArray(parsed.discoveredStepIds) ? parsed.discoveredStepIds : [];
-      const validDiscoveredCount = discovered.filter((id: unknown) =>
-        typeof id === 'string' && DISCOVERY_STEPS.some((step) => step.id === id)
-      ).length;
+      const validDiscoveredIds = new Set(
+        discovered.filter((id: unknown) =>
+          typeof id === 'string' && DISCOVERY_STEPS.some((step) => step.id === id)
+        )
+      );
 
-      return Math.min(100, Math.round((validDiscoveredCount / DISCOVERY_STEPS.length) * 100));
+      return Math.min(100, Math.round((validDiscoveredIds.size / DISCOVERY_STEPS.length) * 100));
     } catch {
       return 0;
     }
@@ -93,26 +92,19 @@ class SaveSystem {
 
   public saveCurrentGame(reason: string = 'autosave') {
     try {
-      // 1. Sync browser and police databases
       browserDb.save();
       policeDatabase.savePersistence();
 
-      // 2. Count unique evidence IDs across VFS and PRIS.
+      // Count unique evidence IDs across the workstation VFS and PRIS.
       const evidenceFiles = vfs.listDir('/home/investigator/Documents/Case_27_Evidence') || [];
       const evidenceRecords = policeDatabase.getEvidenceRecords();
       const evidenceIds = new Set<string>();
-
       evidenceFiles.forEach((file) => {
-        if (file.type === 'file') evidenceIds.add(`vfs:${file.id}`);
+        if (file.type === 'file') evidenceIds.add(file.id);
       });
-      evidenceRecords.forEach((record) => evidenceIds.add(`pris:${record.id}`));
+      evidenceRecords.forEach((record) => evidenceIds.add(record.id));
 
-      const totalEvidence = evidenceIds.size;
-
-      // 3. Update playtime
       const totalPlaytime = this.savePlaytime();
-
-      // 4. Save metadata. Narrative progress is derived from StoryEngine state.
       const meta: SaveMetadata = {
         hasSave: true,
         timestamp: new Date().toISOString(),
@@ -120,7 +112,7 @@ class SaveSystem {
         caseNumber: GAME_CONFIG.caseNumber,
         playtimeSeconds: totalPlaytime,
         storyProgress: this.getCanonicalStoryProgress(),
-        evidenceCount: totalEvidence
+        evidenceCount: evidenceIds.size
       };
 
       localStorage.setItem(SAVE_META_KEY, JSON.stringify(meta));
@@ -136,12 +128,10 @@ class SaveSystem {
     try {
       // Reset case data while preserving player preferences/settings.
       vfs.resetToDefaults();
-
       browserDb.clearHistory();
       browserDb.downloads = [];
       browserDb.save();
 
-      // Reset case-specific state only. Settings are intentionally preserved.
       localStorage.removeItem('pris_database_persistence_v2');
       localStorage.removeItem(STORY_STATE_KEY);
 
@@ -180,15 +170,11 @@ class SaveSystem {
     } catch {}
   }
 
-  /** Returns the canonical narrative progress as a percentage. */
   public getStoryProgress(): number {
     return this.getCanonicalStoryProgress();
   }
 
-  /**
-   * Kept for API compatibility with older callers. Narrative progress is no
-   * longer writable from SaveSystem; StoryEngine is the single source of truth.
-   */
+  /** Kept for compatibility; StoryEngine is the single source of truth. */
   public setStoryProgress(_val: number) {
     this.saveCurrentGame('story_progress_sync');
   }

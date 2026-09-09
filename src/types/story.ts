@@ -17,14 +17,14 @@ export type DiscoveryTriggerType =
   | 'flag';
 
 export interface DiscoveryStep {
-  id: string; // e.g. "step_01"
-  act: number; // 1 to 6
-  order: number; // 1 to 60
+  id: string;
+  act: number;
+  order: number;
   title: string;
   description: string;
   trigger: {
     type: DiscoveryTriggerType;
-    targetId?: string; // record id, webpage url, file path, etc.
+    targetId?: string;
     searchTerm?: string;
     requiredFlags?: string[];
   };
@@ -127,7 +127,7 @@ export interface DeductionResult {
   whereCorrect: boolean;
   whyCorrect: boolean;
   howCorrect: boolean;
-  evidenceScore: number; // 0 - 100
+  evidenceScore: number;
   feedback: {
     who: string;
     what: string;
@@ -138,6 +138,26 @@ export interface DeductionResult {
     evidence: string;
   };
   officialDetermination: string;
+}
+
+export interface InvestigationAction {
+  stepId: string;
+  title: string;
+  description: string;
+  actionType: DiscoveryTriggerType;
+  targetId?: string;
+  searchTerm?: string;
+  hintLevel: number;
+  hintText: string;
+  isOptional: boolean;
+}
+
+export interface DeductionReadiness {
+  ready: boolean;
+  currentAct: number;
+  reasons: string[];
+  discoveredEvidenceIds: string[];
+  requiredEvidenceIds: string[];
 }
 
 export interface StoryState {
@@ -151,7 +171,7 @@ export interface StoryState {
   activeLeadIds: string[];
   timelineEventIds: string[];
   playerNotes: string;
-  hintsUnlocked: Record<string, number>; // stepId -> level 1, 2, or 3
+  hintsUnlocked: Record<string, number>;
   lastActivityTimestamp: number;
   deductionAttempts: number;
   caseResolved: boolean;

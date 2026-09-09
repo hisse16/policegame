@@ -21,18 +21,28 @@ import { RestartTransitionScreen } from './components/menu/RestartTransitionScre
 import { HowToPlayScreen } from './components/menu/HowToPlayScreen';
 import { GameSettingsScreen } from './components/menu/GameSettingsScreen';
 import { CreditsScreen } from './components/menu/CreditsScreen';
+import { InvestigatorOnboarding } from './components/desktop/InvestigatorOnboarding';
+import { CaseResolvedEpilogue } from './components/desktop/CaseResolvedEpilogue';
 import { storyEngine } from './services/story/storyEngine';
 import { DISCOVERY_STEPS } from './services/story/storyData';
 import { InvestigationAction, StoryState } from './types/story';
 import { Icon } from './components/common/Icon';
 
+const ACT_NAMES: Record<number, string> = {
+  1: 'THE ARCHIVE',
+  2: 'THE ORIGINAL INVESTIGATION',
+  3: 'THE PEOPLE AROUND ANNA',
+  4: 'THE MISSING YEARS',
+  5: 'THE COVERED RECORD',
+  6: 'THE TRUTH'
+};
+
+const getStepAct = (stepId: string, fallback: number) => stepId === 'step_39' ? 4 : fallback;
+
 const getActProgress = (state: StoryState) => {
-  const actSteps = DISCOVERY_STEPS.filter((step) => step.act === state.currentAct);
-  const legacyLateStep = state.currentAct === 4 ? DISCOVERY_STEPS.find((step) => step.id === 'step_39') : undefined;
-  const total = actSteps.length + (legacyLateStep && !actSteps.some((step) => step.id === legacyLateStep.id) ? 1 : 0);
-  const completed = actSteps.filter((step) => state.discoveredStepIds.includes(step.id)).length
-    + (legacyLateStep && state.discoveredStepIds.includes(legacyLateStep.id) ? 1 : 0);
-  return { completed, total };
+  const actSteps = DISCOVERY_STEPS.filter((step) => getStepAct(step.id, step.act) === state.currentAct);
+  const completed = actSteps.filter((step) => state.discoveredStepIds.includes(step.id)).length;
+  return { completed, total: actSteps.length };
 };
 
 const getFallbackAction = (state: StoryState): InvestigationAction | null => {
@@ -71,12 +81,14 @@ const InvestigationGuide: React.FC = () => {
       if (completedIds.length > 0) {
         const completedStep = DISCOVERY_STEPS.find((step) => step.id === completedIds[completedIds.length - 1]);
         if (completedStep) {
-          const { completed: completedCount, total } = getActProgress(nextState);
+          const completedAct = getStepAct(completedStep.id, completedStep.act);
+          const progressState = previous.currentAct === completedAct ? nextState : previous;
+          const { completed: completedCount, total } = getActProgress(progressState);
           const actComplete = previous.currentAct !== nextState.currentAct;
           setCompletionFlash({
-            title: actComplete ? `ACT ${completedStep.act} COMPLETE` : 'INVESTIGATION TASK COMPLETE',
+            title: actComplete ? `ACT ${completedAct} COMPLETE` : 'INVESTIGATION TASK COMPLETE',
             message: actComplete
-              ? `${completedStep.act === 1 ? 'THE ARCHIVE' : completedStep.act === 2 ? 'THE ORIGINAL INVESTIGATION' : completedStep.act === 3 ? 'THE PEOPLE AROUND ANNA' : completedStep.act === 4 ? 'THE MISSING YEARS' : completedStep.act === 5 ? 'THE COVERED RECORD' : 'THE TRUTH'} // ${completedCount}/${total} tasks completed. A new investigative thread is now open.`
+              ? `${ACT_NAMES[completedAct]} // ${completedCount}/${total} tasks completed. A new investigative thread is now open.`
               : `${completedStep.title} // ${completedCount}/${total} tasks completed in this act.`
           });
           window.setTimeout(() => setCompletionFlash(null), 4200);
@@ -93,22 +105,10 @@ const InvestigationGuide: React.FC = () => {
 
   const openLead = () => {
     if (!action) return;
-    if (action.actionType === 'view_record') {
-      openApp('police-records');
-      return;
-    }
-    if (action.actionType === 'view_file' && action.targetId) {
-      openApp('file-manager', { path: action.targetId });
-      return;
-    }
-    if (action.actionType === 'view_webpage' && action.targetId) {
-      openApp('browser', { initialUrl: action.targetId });
-      return;
-    }
-    if (action.actionType === 'search_term') {
-      openApp('police-records');
-      return;
-    }
+    if (action.actionType === 'view_record') { openApp('police-records'); return; }
+    if (action.actionType === 'view_file' && action.targetId) { openApp('file-manager', { path: action.targetId }); return; }
+    if (action.actionType === 'view_webpage' && action.targetId) { openApp('browser', { initialUrl: action.targetId }); return; }
+    if (action.actionType === 'search_term') { openApp('police-records'); return; }
     openApp('investigation-notebook');
   };
 
@@ -168,17 +168,29 @@ const InvestigationGuide: React.FC = () => {
 const WorkstationOS: React.FC = () => {
   const { powerState, openApp } = useOS();
   const { gameSettings } = useGame();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showEpilogue, setShowEpilogue] = useState(false);
+
   useEffect(() => {
     const hasBooted = sessionStorage.getItem('securix_initial_boot');
     if (!hasBooted && powerState === 'running') {
       sessionStorage.setItem('securix_initial_boot', 'true');
       openApp('text-editor', { path: '/home/investigator/Desktop/readme.txt' });
+      const alreadySeen = sessionStorage.getItem('investigator_onboarding_seen');
+      if (!alreadySeen) window.setTimeout(() => setShowOnboarding(true), 650);
     }
   }, [powerState, openApp]);
+
+  useEffect(() => storyEngine.subscribe((state) => {
+    if (state.caseResolved && !sessionStorage.getItem('case_27_epilogue_seen')) setShowEpilogue(true);
+  }), []);
+
   if (powerState === 'locked' || powerState === 'logging_out') return <LockScreen />;
   return (
     <div className={`relative w-screen h-screen overflow-hidden select-none bg-slate-950 font-sans text-slate-100 ${gameSettings.highContrast ? 'contrast-125' : ''}`} style={{ transform: gameSettings.uiScale !== 1 ? `scale(${gameSettings.uiScale})` : undefined, transformOrigin: 'top left', width: gameSettings.uiScale !== 1 ? `${100 / gameSettings.uiScale}vw` : '100vw', height: gameSettings.uiScale !== 1 ? `${100 / gameSettings.uiScale}vh` : '100vh' }}>
       <TopPanel /><Desktop><WindowManager /></Desktop><Dock /><AltTabSwitcher /><NotificationToasts /><InvestigationGuide />
+      {showOnboarding && <InvestigatorOnboarding onComplete={() => setShowOnboarding(false)} />}
+      {showEpilogue && <CaseResolvedEpilogue onClose={() => { sessionStorage.setItem('case_27_epilogue_seen', 'true'); setShowEpilogue(false); }} />}
       {gameSettings.crtScanlines && <div className="absolute inset-0 pointer-events-none opacity-[0.05] z-9999" style={{ backgroundImage: 'linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.45) 50%)', backgroundSize: '100% 3px' }} />}
     </div>
   );

@@ -1,164 +1,105 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { CASE_001, CaseDocument } from '../../data/case001';
-import { CASE_001_CLUES } from '../../data/case001Investigations';
+import { CASE_001, CaseDocument, CasePerson } from '../../data/case001';
 
-const STORAGE_KEY = 'blackwood_case_001_v7';
-type Phase = 'opening' | 'scene' | 'case' | 'document' | 'people' | 'notes' | 'reconstruction' | 'report' | 'closed';
-type SceneId = 'apartment' | 'police' | 'school' | 'street';
-type Save = { phase: Exclude<Phase, 'opening' | 'closed'>; opened: string[]; marked: string[]; visited: SceneId[]; notes: string; reconstructed: boolean };
-type SceneObject = { id: string; title: string; clueIds: string[]; text: string; documentId?: string; x?: number; y?: number; shape?: string };
+const STORAGE_KEY = 'blackwood_office_case_v1';
+type Tab = 'office' | 'case' | 'documents' | 'people' | 'requests' | 'reports' | 'notes';
+type Request = { id: number; location: string; focus: string; timeframe: string; instruction: string; status: 'pending' | 'complete'; reportId?: number };
+type FieldReport = { id: number; requestId: number; title: string; date: string; investigator: string; location: string; findings: string[]; witness: string[]; timeline: string[]; links: string[]; limitations: string[] };
+type Save = { tab: Tab; opened: string[]; notes: string; requests: Request[]; reports: FieldReport[] };
+const initial: Save = { tab: 'office', opened: [], notes: '', requests: [], reports: [] };
 
-const initial: Save = { phase: 'scene', opened: [], marked: [], visited: [], notes: '', reconstructed: false };
-const labels: Record<CaseDocument['type'], string> = { letter: 'LETTER', newspaper: 'NEWSPAPER', report: 'REPORT', photograph: 'PHOTOGRAPH', note: 'HANDWRITTEN NOTE' };
-
-const scenes: Record<SceneId, { name: string; place: string; reason: string }> = {
-  apartment: { name: 'THE EMPTY ROOM', place: '14 HARROW LANE · FLAT 3B', reason: 'Margaret’s letter is the only lead you have.' },
-  police: { name: 'NORTH DISTRICT POLICE', place: 'MISSING PERSONS DESK', reason: 'The official timeline does not agree with what you found.' },
-  school: { name: 'ST. ALDEN PRIMARY', place: 'BASEMENT ARCHIVE', reason: 'Anna was looking into an old school record before she disappeared.' },
-  street: { name: 'HARROW LANE', place: 'OUTSIDE FLAT 3B', reason: 'A witness heard someone leave and remembered a dark blue sedan.' },
+const fieldData: Record<string, Omit<FieldReport, 'id'|'requestId'|'title'|'date'|'investigator'|'location'>> = {
+  '14 Harrow Lane': {
+    findings: ['The front door showed no sign of forced entry. The lock and frame were intact.', 'The kitchen window was open approximately twelve centimetres. A narrow dried rain line was visible along the sill.', 'Anna Bell’s handbag, keys, glasses case and blue coat remained inside the flat.', 'Anna Bell’s debit card was used at Mercer Market at 20:31.', 'The kitchen wall clock displayed 20:59 when officers arrived at 21:10.'],
+    witness: ['Helen Ward reported hearing the front door close at approximately 21:10.', 'No witness reported seeing Anna leave the building.'],
+    timeline: ['18:12 — Anna leaves St. Alden Primary School.', '20:31 — Anna Bell debit card used at Mercer Market.', '21:10 — Helen Ward hears the flat door close.', '21:10 — Police later record the kitchen clock as 20:59.'],
+    links: ['Anna Bell', 'Helen Ward', 'Mercer Market', 'Initial Missing Person Report', 'Anna’s Handwritten Note'],
+    limitations: ['No usable interior CCTV was available.', 'The clock discrepancy could not be explained from the scene alone.'],
+  },
+  'St. Alden Primary': {
+    findings: ['Anna asked about the old attendance archive at approximately 17:40.', 'Daniel Hayes spoke with Anna at approximately 18:05 and described her as worried about a mistake in an old record.', 'The 1998 basement archive contains a damaged attendance ledger with a correction beside former caretaker Edward Ward.', 'The correction uses an unusual blue-ink mark matching a mark Anna had photocopied.', 'A loose 1998 staff photograph was hidden inside the ledger rather than filed with staff records.'],
+    witness: ['Daniel Hayes confirmed that Anna was investigating an old record before leaving.', 'School administration could not explain why the photograph had been kept outside the official archive.'],
+    timeline: ['17:40 — Anna asks about the basement archive.', '18:05 — Daniel Hayes speaks with Anna.', '18:12 — Anna leaves school.', '1998 — Edward Ward appears beside a disputed attendance correction.'],
+    links: ['Anna Bell', 'Daniel Hayes', 'Edward Ward', 'The Old Photograph', 'St. Alden Attendance Archive — 1998'],
+    limitations: ['Several 1998 archive pages are damaged or missing.', 'The original reason for the blue-ink correction is not recorded.'],
+  },
+  'Harrow Lane': {
+    findings: ['A fresh-looking tyre impression begins beside the entrance to Flat 3B.', 'The impression is consistent with a mid-size sedan.', 'A shop photograph taken across the road contains a partial registration: EW-19.', 'Helen Ward identifies the dark blue sedan she saw that evening as the same vehicle parked beside the building.', 'The old school maintenance register lists Edward Ward with a blue sedan carrying the same partial registration.'],
+    witness: ['Helen Ward remembers a dark blue sedan outside the building earlier that evening.', 'The shopkeeper’s photograph provides only a partial registration and does not identify the driver.'],
+    timeline: ['Earlier evening — dark blue sedan seen outside Flat 3B.', '21:10 — Helen hears the flat door close.', 'Afterward — heavy footsteps are heard on the stairs.', 'Later — tyre impression remains beside the entrance.'],
+    links: ['Helen Ward', 'Edward Ward', 'EW-19', 'Street Inspection — Harrow Lane'],
+    limitations: ['The registration is only partially visible.', 'The original street CCTV was unavailable for review.'],
+  },
 };
 
-const apartmentObjects: SceneObject[] = [
-  { id: 'window', title: 'Open kitchen window', clueIds: ['clue-rain'], text: 'The window is open roughly twelve centimetres. Rain has dried in a narrow line along the sill.', x: 13, y: 30 },
-  { id: 'coat', title: 'Anna’s blue coat', clueIds: ['clue-coat'], text: 'Anna’s coat is still hanging behind the front door. The evening outside was cold and wet.', x: 23, y: 60 },
-  { id: 'clock', title: 'Wall clock', clueIds: ['clue-clock'], text: 'The clock reads 20:59. The police report says officers arrived at 21:10. Anna’s note warned you not to trust this clock.', x: 77, y: 18 },
-  { id: 'photo', title: 'Old photograph', clueIds: ['clue-photo'], text: 'This is the photograph Margaret told you about. Someone deliberately kept it instead of throwing it away.', x: 69, y: 42, documentId: 'doc-photo' },
-  { id: 'desk', title: 'Kitchen table', clueIds: ['clue-receipt'], text: 'A supermarket receipt shows Anna’s card being used at 20:31, only about seven minutes from home.', x: 55, y: 69, documentId: 'doc-receipt' },
-  { id: 'note', title: 'Folded handwritten note', clueIds: ['clue-note', 'clue-rain'], text: '“Do not trust the wall clock. Check what happened before the rain. Ask why the photograph was kept.”', x: 47, y: 78, documentId: 'doc-note' },
-  { id: 'door', title: 'Front door', clueIds: ['clue-door'], text: 'There is no damage around the lock. Whoever closed this door did not need to force it.', x: 40, y: 42 },
-  { id: 'bag', title: 'Handbag', clueIds: ['clue-bag'], text: 'Anna’s everyday handbag remains inside. Her keys and glasses case are still with it.', x: 39, y: 68 },
-];
-
-const sceneObjects: Record<Exclude<SceneId, 'apartment'>, SceneObject[]> = {
-  police: [
-    { id: 'desk', title: 'Missing-persons desk', clueIds: ['clue-police'], text: 'The file was classified voluntary before the unexplained details had been reconciled.' },
-    { id: 'report', title: 'Initial police report', clueIds: ['clue-clock'], text: 'Arrival: 21:10. Kitchen clock: 20:59. Both times appear in the same report.', documentId: 'doc-report' },
-    { id: 'newspaper', title: 'Press clipping', clueIds: [], text: 'The newspaper repeats the voluntary-disappearance theory but leaves out the clock discrepancy.', documentId: 'doc-newspaper' },
-    { id: 'timeline', title: 'Timeline board', clueIds: ['clue-receipt'], text: '18:12 — Anna leaves school. 20:31 — her card is used at Mercer Market. 21:10 — Helen hears the flat door close. The sequence needs explanation.' },
-  ],
-  school: [
-    { id: 'archive-door', title: 'Basement archive cabinet', clueIds: ['clue-school'], text: 'The cabinet contains the 1998 attendance records Anna had asked about before leaving.', documentId: 'doc-school' },
-    { id: 'ledger', title: 'Damaged 1998 ledger', clueIds: ['clue-blue-ink'], text: 'A correction beside Edward Ward’s name carries the same unusual blue-ink mark Anna had copied.', documentId: 'doc-archive' },
-    { id: 'photo', title: 'Staff photograph', clueIds: ['clue-e-ward'], text: 'The person circled in blue is E. Ward. The school inventory identifies him as Edward Ward, former caretaker.', documentId: 'doc-photograph' },
-    { id: 'maintenance', title: 'Maintenance register', clueIds: ['clue-sedan'], text: 'The old register lists Edward Ward with a dark blue sedan. The partial registration is recorded as EW-19.' },
-  ],
-  street: [
-    { id: 'witness', title: 'Helen Ward’s statement', clueIds: ['clue-footsteps', 'clue-door', 'clue-sedan'], text: 'Helen heard the door close at 21:10, then heavy footsteps. She also remembers a dark blue sedan outside earlier that evening.', documentId: 'doc-witness' },
-    { id: 'tyre', title: 'Fresh tyre impression', clueIds: ['clue-tyre'], text: 'A fresh tyre impression starts beside the entrance. Its width is consistent with a mid-size sedan.', documentId: 'doc-street' },
-    { id: 'shop', title: 'Shopkeeper’s photograph', clueIds: ['clue-plate'], text: 'A photograph from across the road captures part of the registration: EW-19.', documentId: 'doc-street' },
-  ],
-};
-
-function readSave(): Save {
-  try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? { ...initial, ...JSON.parse(raw) } : initial; } catch { return initial; }
-}
+function loadSave(): Save { try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? { ...initial, ...JSON.parse(raw) } : initial; } catch { return initial; } }
+function doc(id: string) { return CASE_001.documents.find(d => d.id === id); }
 
 export const DetectiveGame: React.FC = () => {
-  const saved = useMemo(readSave, []);
-  const [phase, setPhase] = useState<Phase>(() => localStorage.getItem(STORAGE_KEY) ? saved.phase : 'opening');
-  const [openingStep, setOpeningStep] = useState(0);
-  const [opened, setOpened] = useState(saved.opened);
-  const [marked, setMarked] = useState(saved.marked);
-  const [visited, setVisited] = useState(saved.visited);
-  const [notes, setNotes] = useState(saved.notes);
+  const saved = useMemo(loadSave, []);
+  const [tab, setTab] = useState<Tab>(saved.tab || 'office');
+  const [opened, setOpened] = useState<string[]>(saved.opened || []);
+  const [notes, setNotes] = useState(saved.notes || '');
+  const [requests, setRequests] = useState<Request[]>(saved.requests || []);
+  const [reports, setReports] = useState<FieldReport[]>(saved.reports || []);
   const [selectedDoc, setSelectedDoc] = useState<CaseDocument | null>(null);
-  const [activeObject, setActiveObject] = useState<string | null>(null);
+  const [selectedPerson, setSelectedPerson] = useState<CasePerson | null>(null);
+  const [selectedReport, setSelectedReport] = useState<FieldReport | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
+  const [location, setLocation] = useState('14 Harrow Lane');
+  const [focus, setFocus] = useState('CCTV / witnesses / vehicles');
+  const [timeframe, setTimeframe] = useState('October 12 · evening');
+  const [instruction, setInstruction] = useState('Find anything that can clarify what happened after Anna Bell left the school. Check witnesses, vehicles and any available records.');
   const [notice, setNotice] = useState('');
-  const [reconstructed, setReconstructed] = useState(saved.reconstructed);
-  const [culprit, setCulprit] = useState('');
-  const [method, setMethod] = useState('');
-  const [motive, setMotive] = useState('');
-  const [report, setReport] = useState('');
-  const [reportEvidence, setReportEvidence] = useState<string[]>([]);
-  const [scene, setScene] = useState<SceneId>('apartment');
+  useEffect(() => { localStorage.setItem(STORAGE_KEY, JSON.stringify({ tab, opened, notes, requests, reports })); }, [tab, opened, notes, requests, reports]);
 
-  useEffect(() => {
-    if (phase !== 'opening' && phase !== 'closed') localStorage.setItem(STORAGE_KEY, JSON.stringify({ phase, opened, marked, visited, notes, reconstructed }));
-  }, [phase, opened, marked, visited, notes, reconstructed]);
-
-  const clue = (id: string) => CASE_001_CLUES.find(c => c.id === id);
-  const keepClues = (ids: string[]) => {
-    if (!ids.length) return;
-    const fresh = ids.filter(id => !marked.includes(id));
-    setMarked(current => Array.from(new Set([...current, ...ids])));
-    if (fresh.length) setNotice('NEW DETAIL KEPT IN CASEBOOK');
+  const openDocument = (d: CaseDocument) => { setSelectedDoc(d); setOpened(v => v.includes(d.id) ? v : [...v, d.id]); };
+  const finishRequest = (r: Request) => {
+    const data = fieldData[r.location] || fieldData['14 Harrow Lane'];
+    const report: FieldReport = { ...data, id: Date.now(), requestId: r.id, title: `FIELD REPORT — ${r.location.toUpperCase()}`, date: 'October 17, 2026 · 16:40', investigator: 'A. Miller · Field Investigator', location: r.location };
+    setReports(v => [report, ...v]); setRequests(v => v.map(x => x.id === r.id ? { ...x, status: 'complete', reportId: report.id } : x)); setSelectedReport(report); setTab('reports'); setNotice('FIELD REPORT RECEIVED');
   };
-  const unlocks = useMemo<SceneId[]>(() => {
-    const result: SceneId[] = ['apartment'];
-    if (marked.includes('clue-clock')) result.push('police');
-    if (marked.includes('clue-photo') || marked.includes('clue-note')) result.push('school');
-    if (marked.includes('clue-door')) result.push('street');
-    return result;
-  }, [marked]);
-  const proofReady = ['clue-clock', 'clue-footsteps', 'clue-e-ward', 'clue-plate', 'clue-tyre'].every(id => marked.includes(id)) && ['police', 'school', 'street'].every(id => visited.includes(id as SceneId));
-
-  const openDoc = (id: string) => {
-    const doc = CASE_001.documents.find(item => item.id === id);
-    if (!doc) return;
-    setSelectedDoc(doc); setOpened(current => current.includes(id) ? current : [...current, id]); setPhase('document');
+  const sendRequest = () => {
+    if (!location.trim() || !instruction.trim()) { setNotice('LOCATION AND INVESTIGATION QUESTION ARE REQUIRED'); return; }
+    const r: Request = { id: Date.now(), location: location.trim(), focus: focus.trim(), timeframe: timeframe.trim(), instruction: instruction.trim(), status: 'pending' };
+    setRequests(v => [r, ...v]); setTab('requests'); setNotice('FIELD INVESTIGATOR ASSIGNED'); window.setTimeout(() => finishRequest(r), 1400);
   };
-  const inspect = (object: SceneObject) => { setActiveObject(object.id); keepClues(object.clueIds); if (object.documentId) openDoc(object.documentId); };
-  const go = (id: SceneId) => {
-    if (!unlocks.includes(id)) { setNotice('You have not found a reason to go there yet.'); return; }
-    setScene(id); setActiveObject(null); setVisited(current => current.includes(id) ? current : [...current, id]); setPhase('scene');
-  };
-  const start = () => { setScene('apartment'); setVisited(current => current.includes('apartment') ? current : [...current, 'apartment']); setPhase('scene'); };
-  const beginReconstruction = () => { if (!proofReady) { setNotice('There are still contradictions you have not resolved.'); return; } setPhase('reconstruction'); };
-  const submitReconstruction = () => {
-    if (culprit !== 'edward' || method !== 'staged' || motive !== 'archive') { setNotice('That reconstruction does not fit all the evidence. Reconsider the timeline.'); return; }
-    setReconstructed(true); setPhase('report');
-  };
-  const sendReport = () => { if (reconstructed && report.trim().length >= 180 && reportEvidence.length >= 4) setPhase('closed'); };
+  const pending = requests.filter(r => r.status === 'pending').length;
 
-  if (phase === 'opening') {
-    const pages = [
-      ['BLACKWOOD DETECTIVE AGENCY', 'THE FIRST CASE', 'Twelve days ago, you put a name on a door. Today, someone finally knocked.'],
-      ['OCTOBER 14 · 10:55 AM', 'A BROWN ENVELOPE', 'Inside: a letter from Margaret Bell, an address, and one sentence that refuses to leave your mind: “Please look properly.”'],
-      ['THE ADDRESS', '14 HARROW LANE · FLAT 3B', 'Anna Bell is missing. Police believe she left voluntarily. Her sister believes the room tells a different story.'],
-    ];
-    const page = pages[openingStep];
-    return <main className="detective-opening"><div className="opening-grain"/><div className="opening-content"><div className="opening-kicker">{page[0]}</div><h1>{page[1]}</h1><p className="opening-copy">{page[2]}</p><div className="opening-progress">{openingStep + 1} / {pages.length}</div><button className="ink-button" onClick={() => openingStep < 2 ? setOpeningStep(s => s + 1) : start()}>{openingStep < 2 ? 'CONTINUE' : 'ENTER THE SCENE'}</button></div></main>;
-  }
-  if (phase === 'closed') return <main className="detective-opening"><div className="opening-content"><div className="opening-kicker">CASE 001 · OFFICIAL RESULT</div><h1>CASE CLOSED</h1><p className="opening-copy">Your findings have been submitted to North District Police. Anna Bell’s disappearance is no longer treated as voluntary.</p><div className="closing-stamp">FINDINGS SUBMITTED<br/>TO NORTH DISTRICT POLICE</div><p className="opening-copy">The Blackwood Detective Agency remains open.</p><button className="ink-button" onClick={() => setPhase('case')}>OPEN CASEBOOK</button></div></main>;
-
-  const objects = scene === 'apartment' ? apartmentObjects : sceneObjects[scene];
-  const documents = CASE_001.documents.filter(doc => opened.includes(doc.id));
-
-  return <main className="detective-shell">
-    <header className="agency-header"><div><div className="header-kicker">BLACKWOOD DETECTIVE AGENCY</div><div className="header-title">CASE 001 · THE EMPTY ROOM</div></div><div className="header-status"><span className="status-dot"/> INVESTIGATION ACTIVE</div></header>
-    <nav className="detective-nav"><button onClick={() => setPhase('scene')}>FIELD</button><button onClick={() => setPhase('case')}>CASEBOOK <b>{marked.length}</b></button><button onClick={() => setPhase('people')}>PEOPLE</button><button onClick={() => setPhase('notes')}>NOTES</button><button className="report-link" disabled={!proofReady} onClick={beginReconstruction}>{reconstructed ? 'REPORT' : 'RECONSTRUCT'}{proofReady ? '' : ' · LOCKED'}</button></nav>
-
-    {phase === 'scene' && <section className="field-layout">
-      <aside className="lead-rail"><div className="scene-kicker">FIELD FILE</div><div className="lead-title">{scenes[scene].name}</div><div className="lead-place">{scenes[scene].place}</div><div className="lead-rule"/><div className="lead-label">WHAT BROUGHT YOU HERE</div><p>{scenes[scene].reason}</p><div className="lead-label">DISCOVERED</div><p className="small-muted">{marked.length} details kept in casebook</p><button className="rail-button" onClick={() => setPhase('case')}>OPEN CASEBOOK →</button></aside>
-      <section className={`room-scene room-${scene}`}>
-        <div className={`scene-architecture architecture-${scene}`}>
-          {scene === 'apartment' && <><div className="room-window"/><div className="room-clock"><span>20:59</span></div><div className="room-door"><span>3B</span></div><div className="room-desk"/><div className="room-coat"/><div className="room-frame"/><div className="room-rug"/><div className="room-lamp"/><div className="room-chair"/></>}
-          {scene === 'police' && <><div className="prop-counter"/><div className="prop-filing"/><div className="prop-board"><i/><i/><i/><i/></div><div className="prop-desk"/><div className="prop-chair"/><div className="prop-clock"/></>}
-          {scene === 'school' && <><div className="prop-archive-wall"/><div className="prop-cabinet"/><div className="prop-ledger"/><div className="prop-photo-grid"><i/><i/><i/></div><div className="prop-basement-lamp"/></>}
-          {scene === 'street' && <><div className="street-building"/><div className="street-door"/><div className="street-curb"/><div className="street-car"/><div className="street-lamp"/><div className="street-rain"/></>}
-        </div>
-        <div className="location-title"><div className="scene-kicker">FIELD LOCATION</div><strong>{scenes[scene].name}</strong><span>{scenes[scene].place}</span></div>
-        <div className={`scene-object-layer layer-${scene}`}>
-          {objects.map((object, index) => <button key={object.id} className={`scene-object scene-object-${index + 1} ${object.clueIds.some(id => marked.includes(id)) ? 'found' : ''}`} onClick={() => inspect(object)}><span className="scene-object-dot"/><strong>{object.title}</strong><small>{object.documentId ? 'INSPECT' : 'EXAMINE'}</small></button>)}
-        </div>
-        {scene === 'apartment' && apartmentObjects.map(object => <button key={`hot-${object.id}`} className={`hotspot ${activeObject === object.id ? 'active' : ''} ${object.clueIds.some(id => marked.includes(id)) ? 'found' : ''}`} style={{ left: `${object.x}%`, top: `${object.y}%` }} onClick={() => inspect(object)} aria-label={`Inspect ${object.title}`}><span className="hotspot-ring"/><span className="hotspot-label">{object.title}{object.clueIds.some(id => marked.includes(id)) ? ' · KEPT' : ''}</span></button>)}
-        {activeObject && (() => { const object = objects.find(item => item.id === activeObject); if (!object) return null; return <div className="evidence-popover"><div className="evidence-type">FIELD DETAIL · {object.documentId ? 'DOCUMENT' : 'OBSERVATION'}</div><h2>{object.title}</h2><p>{object.text}</p><div className="evidence-source">The relevant detail has been kept in your casebook.</div><button onClick={() => setActiveObject(null)}>CLOSE</button></div>; })()}
-        {notice && <div className="field-notice">{notice}<button onClick={() => setNotice('')}>×</button></div>}
-        <div className="scene-caption"><span>INVESTIGATE</span><strong>Look closely. The important detail may not be the obvious one.</strong></div>
+  return <main className="blackwood-office">
+    <div className="office-backdrop" aria-hidden="true" /><div className="office-vignette" aria-hidden="true" />
+    <header className="office-topbar"><div className="agency-mark"><span>BLACKWOOD</span><small>DETECTIVE AGENCY · PRIVATE INVESTIGATIONS</small></div><div className="case-strip"><i /> CASE 001 <b>THE EMPTY ROOM</b></div><div className="clock-strip">MON · OCT 17, 2026&nbsp;&nbsp; 16:47</div></header>
+    <section className="office-workspace">
+      <aside className="office-left"><div className="folder-label">ACTIVE CASE</div><h1>Anna Bell</h1><p className="muted">Missing person · 34 · Teacher</p><div className="paper-rule" />
+        {([['office','Desk','01'],['case','Case file','02'],['documents','Documents',String(opened.length)],['people','People',String(CASE_001.people.length)],['requests','Field requests',String(pending || '—')],['reports','Field reports',String(reports.length || '—')],['notes','Notebook','∞']] as [Tab,string,string][]).map(([id,label,count]) => <button key={id} className={`desk-nav ${tab === id ? 'active' : ''}`} onClick={() => setTab(id)}>{label}<span>{count}</span></button>)}
+        <div className="left-bottom"><div className="folder-label">OFFICE</div><div>BLACKWOOD · ROOM 3</div><div className="muted">You stay here. The field team travels.</div></div>
+      </aside>
+      <section className="office-content">{notice && <button className="notice" onClick={() => setNotice('')}>{notice} ×</button>}
+        {tab === 'office' && <Home pending={pending} reports={reports} onAssign={() => setTab('requests')} onReport={r => { setSelectedReport(r); setTab('reports'); }} />}
+        {tab === 'case' && <CaseFile onOpen={openDocument} />}
+        {tab === 'documents' && <Documents opened={opened} onOpen={openDocument} />}
+        {tab === 'people' && <People onOpen={setSelectedPerson} />}
+        {tab === 'requests' && <Requests requests={requests} selected={selectedRequest} setSelected={setSelectedRequest} onAssign={sendRequest} location={location} setLocation={setLocation} focus={focus} setFocus={setFocus} timeframe={timeframe} setTimeframe={setTimeframe} instruction={instruction} setInstruction={setInstruction} />}
+        {tab === 'reports' && <Reports reports={reports} selected={selectedReport} setSelected={setSelectedReport} />}
+        {tab === 'notes' && <Notebook notes={notes} setNotes={setNotes} />}
       </section>
-      <aside className="lead-map"><div className="scene-kicker">LEADS</div><div className="lead-map-line"><div className="lead-node current">THE EMPTY ROOM<small>KNOWN</small></div>{(['police','school','street'] as SceneId[]).map(id => <React.Fragment key={id}><div className="lead-arrow">→</div><button className={`lead-node ${unlocks.includes(id) ? 'unlocked' : 'locked'}`} onClick={() => go(id)}>{unlocks.includes(id) ? scenes[id].name : 'UNKNOWN'}<small>{unlocks.includes(id) ? 'NEW LEAD' : 'LOCKED'}</small></button></React.Fragment>)}</div><p className="lead-help">Places become available when the evidence gives you a reason to look there.</p></aside>
-    </section>}
-
-    {phase === 'case' && <div className="modal-stage"><section className="case-folder"><button className="close-button" onClick={() => setPhase('scene')}>×</button><div className="folder-tab">CASE 001</div><div className="folder-content"><div className="folder-heading"><span>BLACKWOOD PRIVATE INVESTIGATIONS</span><strong>THE EMPTY ROOM</strong><small>WORKING CASEBOOK</small></div><div className="case-tabs"><button className="active">EVIDENCE <b>{marked.length}</b></button><button onClick={() => documents[0] ? openDoc(documents[0].id) : setNotice('No documents have been examined yet.')}>DOCUMENTS <b>{opened.length}</b></button></div><div className="case-evidence-grid">{marked.length ? marked.map(id => { const item = clue(id); return item ? <article key={id}><span>{item.kind.toUpperCase()}</span><h3>{item.title}</h3><p>{item.text}</p><small>{CASE_001.documents.find(doc => doc.id === item.sourceDocumentId)?.title}</small></article> : null; }) : <div className="empty-case"><h2>Nothing pinned yet.</h2><p>The room is waiting. Look before you conclude.</p></div>}</div><div className="case-doc-strip"><span>DOCUMENTS EXAMINED</span>{documents.map(doc => <button key={doc.id} onClick={() => openDoc(doc.id)}>{doc.title}</button>)}</div>{proofReady && <button className="case-footer-button" onClick={beginReconstruction}>BEGIN FINAL RECONSTRUCTION →</button>}<button className="case-footer-button" onClick={() => setPhase('scene')}>← BACK TO FIELD</button></div></section></div>}
-
-    {phase === 'document' && selectedDoc && <div className="modal-stage"><article className={`document-viewer ${selectedDoc.type}`}><button className="close-button" onClick={() => setPhase('scene')}>×</button><div className="document-meta">{labels[selectedDoc.type]} · {selectedDoc.source} · {selectedDoc.date}</div><h1>{selectedDoc.title}</h1><div className="document-rule"/>{selectedDoc.content.split('\n').map((line, i) => <p key={i} className={line && line === line.toUpperCase() ? 'document-heading' : ''}>{line || '\u00a0'}</p>)}<div className="document-tags">{selectedDoc.tags?.map(tag => <span key={tag}>{tag}</span>)}</div><button className="document-close" onClick={() => setPhase('scene')}>RETURN TO FIELD</button></article></div>}
-
-    {phase === 'people' && <div className="modal-stage"><section className="people-panel"><button className="close-button" onClick={() => setPhase('scene')}>×</button><div className="panel-kicker">CASE INDEX</div><h1>PEOPLE</h1><p>Names are facts. Conclusions belong to you.</p>{CASE_001.people.map(person => <article key={person.id}><div className="person-initial">{person.name.split(' ').map(part => part[0]).join('').slice(0,2)}</div><div><h2>{person.name}</h2><span>{person.role}</span><p>{person.note}</p></div></article>)}</section></div>}
-
-    {phase === 'notes' && <div className="modal-stage"><section className="notebook-panel"><button className="close-button" onClick={() => setPhase('scene')}>×</button><div className="panel-kicker">PRIVATE NOTES · CASE 001</div><h1>FIELD NOTES</h1><p>Observations, questions, contradictions. No objectives.</p><textarea value={notes} onChange={event => setNotes(event.target.value)} placeholder="Write what you think matters..."/><div className="autosave">SAVED LOCALLY</div></section></div>}
-
-    {phase === 'reconstruction' && <div className="modal-stage"><section className="reconstruction-panel"><button className="close-button" onClick={() => setPhase('scene')}>×</button><div className="panel-kicker">CASE 001 · FINAL DEDUCTION</div><h1>RECONSTRUCT THE DISAPPEARANCE</h1><p className="reconstruction-intro">You have enough evidence to form a complete theory. Explain the case as a sequence of events, not as a task.</p><label>WHO IS RESPONSIBLE<select value={culprit} onChange={e => setCulprit(e.target.value)}><option value="">Choose from the evidence</option><option value="edward">Edward Ward</option><option value="daniel">Daniel Hayes</option><option value="helen">Helen Ward</option></select></label><label>WHAT HAPPENED<select value={method} onChange={e => setMethod(e.target.value)}><option value="">Choose the sequence</option><option value="staged">The disappearance was staged</option><option value="voluntary">Anna left voluntarily</option><option value="accident">Anna left and vanished accidentally</option></select></label><label>WHY<select value={motive} onChange={e => setMotive(e.target.value)}><option value="">Choose the motive</option><option value="archive">Anna had uncovered the old attendance-record dispute</option><option value="personal">A private dispute unrelated to the school</option><option value="travel">Anna wanted to disappear</option></select></label><div className="reconstruction-evidence">{['clue-clock','clue-footsteps','clue-e-ward','clue-plate','clue-tyre'].map(id => { const item = clue(id); return item ? <span key={id}>{item.title}</span> : null; })}</div><button className="ink-button" onClick={submitReconstruction}>LOCK IN RECONSTRUCTION</button>{notice && <p className="reconstruction-feedback">{notice}</p>}</section></div>}
-
-    {phase === 'report' && <div className="modal-stage"><section className="report-panel"><button className="close-button" onClick={() => setPhase('scene')}>×</button><div className="panel-kicker">CASE 001 · FORMAL SUBMISSION</div><h1>REPORT TO NORTH DISTRICT POLICE</h1><p className="report-intro">Write the conclusion in your own words. Then attach the evidence that supports it.</p><div className="report-grid"><textarea value={report} onChange={e => setReport(e.target.value)} placeholder="Describe what happened, who was responsible, and how the evidence supports your conclusion..."/><div className="report-evidence-select">{['clue-coat','clue-clock','clue-footsteps','clue-e-ward','clue-plate','clue-tyre','clue-blue-ink','clue-police'].filter(id => marked.includes(id)).map(id => { const item = clue(id); if (!item) return null; return <label key={id}><input type="checkbox" checked={reportEvidence.includes(id)} onChange={e => setReportEvidence(current => e.target.checked ? [...current, id] : current.filter(value => value !== id))}/><span>{item.title}</span></label>; })}</div></div><div className="report-submit-row"><span>{report.trim().length}/180 characters · {reportEvidence.length}/4 evidence</span><button className="ink-button" disabled={report.trim().length < 180 || reportEvidence.length < 4} onClick={sendReport}>SUBMIT FINDINGS</button></div></section></div>}
+    </section>
+    {selectedDoc && <DocumentModal d={selectedDoc} close={() => setSelectedDoc(null)} />}{selectedPerson && <PersonModal p={selectedPerson} close={() => setSelectedPerson(null)} />}
   </main>;
 };
+
+const Home: React.FC<{pending:number;reports:FieldReport[];onAssign:()=>void;onReport:(r:FieldReport)=>void}> = ({pending,reports,onAssign,onReport}) => <div className="home-view"><div className="view-kicker">BLACKWOOD · PRIVATE OFFICE</div><h2>The desk is the scene.</h2><p className="lede">You never need to leave the office. Read what arrives, follow connections, ask the right questions, and send someone into the field when you need facts you cannot obtain from the desk.</p><div className="paper-stack"><article className="desk-paper letter-paper"><div className="paper-type">LETTER · OCT 13</div><h3>Margaret Bell</h3><p>“Please look properly. Anna would not leave without her coat, handbag and glasses.”</p><button onClick={onAssign}>Investigate the lead →</button></article><article className="desk-paper newspaper-paper"><div className="paper-type">THE EVENING REGISTER</div><h3>TEACHER REPORTED MISSING</h3><p>Police currently describe the disappearance as voluntary. Last confirmed sighting: 18:12.</p><span className="red-pencil">QUESTION THE TIMELINE</span></article><article className="desk-paper report-paper"><div className="paper-type">FIELD DESK</div><h3>{reports.length ? `${reports.length} report${reports.length>1?'s':''} received` : 'No field reports yet'}</h3><p>{pending ? `${pending} investigator is currently working.` : 'Nothing is waiting on your desk.'}</p>{reports[0] && <button onClick={() => onReport(reports[0])}>Read latest report →</button>}</article></div><div className="home-footer"><span>ACTIVE LEADS</span><b>Read. Compare. Ask. Connect.</b><span>FIELD TEAM {pending?'IN PROGRESS':'AVAILABLE'}</span></div></div>;
+
+const CaseFile: React.FC<{onOpen:(d:CaseDocument)=>void}> = ({onOpen}) => <div className="view"><div className="view-kicker">CASE FILE · CASE-001</div><h2>The Empty Room</h2><p className="lede">A woman vanished. The room tells a different story.</p><div className="case-grid"><div><label>CLIENT</label><strong>Margaret Bell</strong><p>Anna’s sister. Received a worrying call the night before the disappearance.</p></div><div><label>SUBJECT</label><strong>Anna Bell</strong><p>34 · Primary school teacher · Missing since October 12.</p></div><div><label>POLICE POSITION</label><strong>Voluntary absence</strong><p>North District Police classified the case low risk before contradictions were reconciled.</p></div><div><label>YOUR POSITION</label><strong>Unresolved</strong><p>No prescribed route. The case changes as you connect evidence.</p></div></div><button className="primary-paper-button" onClick={() => { const d=doc('doc-client-letter'); if(d) onOpen(d); }}>Read Margaret’s letter</button></div>;
+
+const Documents: React.FC<{opened:string[];onOpen:(d:CaseDocument)=>void}> = ({opened,onOpen}) => <div className="view"><div className="view-kicker">DESK ARCHIVE</div><h2>Documents</h2><p className="lede">Letters, newspapers and reports stay on the desk. Nothing here tells you what to think.</p><div className="document-list">{CASE_001.documents.map(d=><button key={d.id} className={`document-row ${opened.includes(d.id)?'read':''}`} onClick={()=>onOpen(d)}><span className="doc-type">{d.type.toUpperCase()}</span><span><b>{d.title}</b><small>{d.date} · {d.source}</small></span><em>{opened.includes(d.id)?'READ':'UNREAD'}</em></button>)}</div></div>;
+const People: React.FC<{onOpen:(p:CasePerson)=>void}> = ({onOpen}) => <div className="view"><div className="view-kicker">CASE INDEX</div><h2>People</h2><p className="lede">Names are leads, not conclusions.</p><div className="people-grid">{CASE_001.people.map(p=><button key={p.id} className="person-card" onClick={()=>onOpen(p)}><span>{p.name.split(' ').map(n=>n[0]).join('')}</span><b>{p.name}</b><small>{p.role}</small></button>)}</div></div>;
+
+interface RequestProps {requests:Request[];selected:Request|null;setSelected:(r:Request|null)=>void;onAssign:()=>void;location:string;setLocation:(v:string)=>void;focus:string;setFocus:(v:string)=>void;timeframe:string;setTimeframe:(v:string)=>void;instruction:string;setInstruction:(v:string)=>void}
+const Requests: React.FC<RequestProps> = p => <div className="view"><div className="view-kicker">FIELD OPERATIONS</div><h2>Ask. They investigate.</h2><p className="lede">Give the field investigator a question worth answering. Reports return with facts, contradictions and limitations — never a verdict.</p><div className="request-layout"><div className="assignment-card"><div className="form-label">DESTINATION / SUBJECT</div><input value={p.location} onChange={e=>p.setLocation(e.target.value)} placeholder="e.g. 14 Harrow Lane"/><div className="form-label">FOCUS</div><input value={p.focus} onChange={e=>p.setFocus(e.target.value)} placeholder="CCTV, witnesses, vehicles..."/><div className="form-label">TIME WINDOW</div><input value={p.timeframe} onChange={e=>p.setTimeframe(e.target.value)}/><div className="form-label">WHAT DO YOU WANT TO KNOW?</div><textarea value={p.instruction} onChange={e=>p.setInstruction(e.target.value)} rows={7}/><button className="send-button" onClick={p.onAssign}>SEND FIELD REQUEST →</button></div><div className="request-history"><div className="form-label">OUTSTANDING & COMPLETED</div>{p.requests.length===0&&<div className="empty-slip">No requests. Start from a question you cannot answer from the desk.</div>}{p.requests.map(r=><button key={r.id} className={`request-row ${p.selected?.id===r.id?'selected':''}`} onClick={()=>p.setSelected(r)}><span className={r.status==='complete'?'check':'spinner'}>{r.status==='complete'?'✓':'…'}</span><span><b>{r.location}</b><small>{r.focus} · {r.timeframe}</small></span><em>{r.status==='complete'?'REPORT READY':'IN FIELD'}</em></button>)}{p.selected&&<div className="request-detail"><b>YOUR QUESTION</b><p>{p.selected.instruction}</p><small>{p.selected.status==='complete'?'The investigator returned a report.':'Field investigator is still working.'}</small></div>}</div></div></div>;
+
+const Reports: React.FC<{reports:FieldReport[];selected:FieldReport|null;setSelected:(r:FieldReport|null)=>void}> = ({reports,selected,setSelected}) => <div className="view"><div className="view-kicker">FIELD INTELLIGENCE</div><h2>Reports</h2><p className="lede">The useful part may be a contradiction, a name, a time, or a detail that was almost missed.</p>{reports.length===0?<div className="empty-report"><b>YOUR FIELD DESK IS EMPTY.</b><span>Assign an investigation from Field Requests.</span></div>:<div className="report-list">{reports.map(r=><button key={r.id} className="report-row" onClick={()=>setSelected(r)}><span className="report-stamp">FIELD<br/>REPORT</span><span><b>{r.title}</b><small>{r.date} · {r.investigator}</small><p>{r.findings[0]}</p></span><em>OPEN →</em></button>)}</div>}{selected&&<div className="inline-report"><div className="report-head"><span>{selected.investigator}</span><b>{selected.location}</b></div><h3>{selected.title}</h3><ReportSection title="FINDINGS" items={selected.findings}/><ReportSection title="WITNESS / SOURCES" items={selected.witness}/><ReportSection title="TIMELINE" items={selected.timeline}/><ReportSection title="LIMITATIONS" items={selected.limitations}/><section><h4>LINKED LEADS</h4><div className="linked-chips">{selected.links.map(x=><span key={x}>{x}</span>)}</div></section></div>}</div>;
+const ReportSection: React.FC<{title:string;items:string[]}> = ({title,items}) => <section><h4>{title}</h4>{items.map((x,i)=><p key={i}>• {x}</p>)}</section>;
+const Notebook: React.FC<{notes:string;setNotes:(v:string)=>void}> = ({notes,setNotes}) => <div className="view notebook-view"><div className="view-kicker">PRIVATE NOTES</div><h2>Notebook</h2><p className="lede">Write your own theory, questions and contradictions. The game never marks a theory correct for you.</p><textarea className="big-notebook" value={notes} onChange={e=>setNotes(e.target.value)} placeholder="What do you think is happening? What does not fit yet? Which question should you ask next?"/><div className="notebook-hint">Saved automatically.</div></div>;
+const DocumentModal: React.FC<{d:CaseDocument;close:()=>void}> = ({d,close}) => <div className="modal-backdrop" onClick={close}><article className="paper-modal" onClick={e=>e.stopPropagation()}><button className="close-paper" onClick={close}>×</button><div className="paper-type">{d.type.toUpperCase()} · {d.date}</div><h2>{d.title}</h2><div className="modal-source">{d.source}</div><div className="document-content">{d.content.split('\n').map((x,i)=><p key={i}>{x||'\u00a0'}</p>)}</div><div className="tag-row">{d.tags?.map(x=><span key={x}>{x}</span>)}</div></article></div>;
+const PersonModal: React.FC<{p:CasePerson;close:()=>void}> = ({p,close}) => <div className="modal-backdrop" onClick={close}><article className="person-modal" onClick={e=>e.stopPropagation()}><button className="close-paper" onClick={close}>×</button><div className="initial-badge">{p.name.split(' ').map(n=>n[0]).join('')}</div><div className="paper-type">CASE PERSON</div><h2>{p.name}</h2><h3>{p.role}</h3><p>{p.note}</p></article></div>;

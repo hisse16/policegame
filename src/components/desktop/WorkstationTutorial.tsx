@@ -22,8 +22,6 @@ const byTextContains = (text: string) => {
   const wanted = normalize(text);
   return buttons().find((button) => normalize(button.textContent || '').includes(wanted)) || null;
 };
-const byTitle = (title: string) => document.querySelector(`button[title="${title}"]`) as HTMLElement | null;
-const appLauncherButton = () => byText('Applications');
 const windowByApp = (app: string) => {
   const names: Record<string, string> = {
     'police-records': 'PRIS Database',
@@ -36,9 +34,6 @@ const windowByApp = (app: string) => {
   return Array.from(document.querySelectorAll('[id^="window-win_"]')).find((element) =>
     normalize(element.textContent || '').includes(normalize(name))
   ) as HTMLElement | null;
-};
-const click = (element: HTMLElement | null) => {
-  if (element && !element.hasAttribute('disabled')) element.click();
 };
 
 export const WorkstationTutorial: React.FC<WorkstationTutorialProps> = ({ onFinish }) => {
@@ -122,9 +117,9 @@ export const WorkstationTutorial: React.FC<WorkstationTutorialProps> = ({ onFini
       },
       {
         title: 'Build connections yourself',
-        text: 'The Investigation Board is where you can turn separate discoveries into a relationship you believe is meaningful. The game will not draw the conclusion for you.',
+        text: 'The Investigation Board is where you can turn separate discoveries into a relationship you believe is meaningful. Pin records, connect them when you have a reason, and form your own hypothesis.',
         app: 'investigation-board',
-        target: () => document.querySelector('svg')?.parentElement as HTMLElement | null,
+        target: () => byText('Pin Item') || byText('Connect String'),
         prepare: openBoard
       },
       {
@@ -231,10 +226,7 @@ export const WorkstationTutorial: React.FC<WorkstationTutorialProps> = ({ onFini
           {above ? '↓' : '↑'}
         </div>
       )}
-      <div
-        className="absolute left-1/2 -translate-x-1/2 w-[min(720px,calc(100vw-2rem))] pointer-events-auto"
-        style={card}
-      >
+      <div className="absolute left-1/2 -translate-x-1/2 w-[min(720px,calc(100vw-2rem))] pointer-events-auto" style={card}>
         <div className="rounded-2xl bg-slate-950/98 border border-blue-500/50 shadow-2xl overflow-hidden">
           <div className="h-1 bg-gradient-to-r from-blue-700 via-cyan-300 to-blue-700" />
           <div className="p-5">
@@ -243,22 +235,15 @@ export const WorkstationTutorial: React.FC<WorkstationTutorialProps> = ({ onFini
                 <Icon name="Search" size={18} />
               </div>
               <div>
-                <div className="text-[9px] uppercase tracking-[.18em] text-blue-400">
-                  INVESTIGATION TUTORIAL · {index + 1}/{steps.length}
-                </div>
+                <div className="text-[9px] uppercase tracking-[.18em] text-blue-400">INVESTIGATION TUTORIAL · {index + 1}/{steps.length}</div>
                 <h2 className="mt-1 text-base font-semibold text-white">{step.title}</h2>
               </div>
             </div>
             <p className="mt-3 text-[11px] leading-5 text-slate-300">{step.text}</p>
             {!rect && <div className="mt-2 text-[9px] text-amber-400">Waiting for the investigation element to appear…</div>}
             <div className="mt-4 flex items-center justify-between">
-              <button onClick={finish} className="text-[10px] text-slate-500 hover:text-slate-200">
-                Skip tutorial
-              </button>
-              <button
-                onClick={next}
-                className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold uppercase tracking-wider"
-              >
+              <button onClick={finish} className="text-[10px] text-slate-500 hover:text-slate-200">Skip tutorial</button>
+              <button onClick={next} className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold uppercase tracking-wider">
                 {index === steps.length - 1 ? 'Start Investigating' : 'Next'}
               </button>
             </div>

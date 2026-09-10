@@ -194,6 +194,8 @@ const WorkstationOS: React.FC = () => {
 
   useEffect(() => {
     if (powerState !== 'running') return;
+    let onboardingTimer: number | undefined;
+    let tutorialTimer: number | undefined;
 
     try {
       if (
@@ -209,10 +211,15 @@ const WorkstationOS: React.FC = () => {
     }
 
     if (!sessionStorage.getItem('investigator_onboarding_seen')) {
-      window.setTimeout(() => setShowOnboarding(true), 500);
-    } else if (!sessionStorage.getItem('investigator_workstation_tutorial_v2')) {
-      window.setTimeout(() => setShowTutorial(true), 450);
+      onboardingTimer = window.setTimeout(() => setShowOnboarding(true), 500);
+    } else if (!sessionStorage.getItem('investigator_workstation_tutorial_v3')) {
+      tutorialTimer = window.setTimeout(() => setShowTutorial(true), 450);
     }
+
+    return () => {
+      if (onboardingTimer) window.clearTimeout(onboardingTimer);
+      if (tutorialTimer) window.clearTimeout(tutorialTimer);
+    };
   }, [powerState]);
 
   useEffect(() => {
@@ -236,7 +243,7 @@ const WorkstationOS: React.FC = () => {
   };
 
   const finishTutorial = () => {
-    try { sessionStorage.setItem('investigator_workstation_tutorial_v2', 'true'); } catch {}
+    try { sessionStorage.setItem('investigator_workstation_tutorial_v3', 'true'); } catch {}
     setShowTutorial(false);
   };
 
@@ -266,25 +273,14 @@ const WorkstationOS: React.FC = () => {
 };
 
 const GameShell: React.FC = () => {
-  const { gameState, onComputerShutdown, onComputerRestart } = useGame();
-
-  switch (gameState) {
-    case 'MAIN_MENU':
-      return <div className="relative w-screen h-screen overflow-hidden bg-slate-950"><MenuBackground /><MainMenuScreen /></div>;
-    case 'HOW_TO_PLAY':
-      return <div className="relative w-screen h-screen overflow-hidden bg-slate-950"><MenuBackground /><HowToPlayScreen /></div>;
-    case 'SETTINGS':
-      return <div className="relative w-screen h-screen overflow-hidden bg-slate-950"><MenuBackground /><GameSettingsScreen /></div>;
-    case 'CREDITS':
-      return <div className="relative w-screen h-screen overflow-hidden bg-slate-950"><MenuBackground /><CreditsScreen /></div>;
-    case 'BOOTING': return <BootTransitionScreen />;
-    case 'COMPUTER_SHUTTING_DOWN': return <ShutdownTransitionScreen />;
-    case 'COMPUTER_RESTARTING': return <RestartTransitionScreen />;
-    case 'COMPUTER_RUNNING': return <OSProvider onShutdown={onComputerShutdown} onRestart={onComputerRestart}><WorkstationOS /></OSProvider>;
-    default: return null;
-  }
+  const { powerState } = useOS();
+  return powerState === 'off' ? <MainMenuScreen /> : <WorkstationOS />;
 };
 
-export default function App() {
-  return <GameProvider><GameShell /></GameProvider>;
-}
+export const App: React.FC = () => (
+  <GameProvider>
+    <OSProvider>
+      <GameShell />
+    </OSProvider>
+  </GameProvider>
+);

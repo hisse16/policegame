@@ -15,7 +15,6 @@ import { InvestigationBoardApp } from '../apps/board/InvestigationBoardApp';
 import { InvestigationNotebookApp } from '../apps/notebook/InvestigationNotebookApp';
 import { FinalDeductionApp } from '../apps/deduction/FinalDeductionApp';
 import { PoliceMailApp } from '../apps/mail/PoliceMailApp';
-import { InvestigationMapApp } from '../apps/map/InvestigationMapApp';
 
 export const WindowManager: React.FC = () => {
   const { windows, openApp, closeWindow } = useOS();
@@ -33,7 +32,6 @@ export const WindowManager: React.FC = () => {
           <InvestigationNotebookApp
             onOpenRecord={(recId) => {
               if (recId.startsWith('MAIL-') || recId.startsWith('EML-')) openApp('police-mail', { emailId: recId });
-              else if (recId.startsWith('LOC-')) openApp('investigation-map', { locationId: recId });
               else if (recId.startsWith('EV-') || recId.startsWith('E-')) openApp('evidence-lab', { evidenceId: recId });
               else openApp('police-records', { recordId: recId });
             }}
@@ -42,15 +40,12 @@ export const WindowManager: React.FC = () => {
         );
       case 'police-mail':
         return <PoliceMailApp windowId={windowId} params={params} />;
-      case 'investigation-map':
-        return <InvestigationMapApp windowId={windowId} initialLocationId={params?.locationId} params={params} />;
       case 'final-deduction':
         return (
           <FinalDeductionApp
             onClose={() => closeWindow(windowId)}
             onOpenRecord={(recId) => {
               if (recId.startsWith('MAIL-') || recId.startsWith('EML-')) openApp('police-mail', { emailId: recId });
-              else if (recId.startsWith('LOC-')) openApp('investigation-map', { locationId: recId });
               else if (recId.startsWith('EV-') || recId.startsWith('E-')) openApp('evidence-lab', { evidenceId: recId });
               else openApp('police-records', { recordId: recId });
             }}
@@ -61,8 +56,6 @@ export const WindowManager: React.FC = () => {
       case 'terminal':
         return <TerminalApp windowId={windowId} params={params} />;
       case 'browser': {
-        // Some callers historically used initialUrl while BrowserApp expects url.
-        // Normalize both forms here so guided leads and file links always navigate.
         const browserParams = params ? { ...params, url: params.url ?? params.initialUrl } : undefined;
         return <BrowserApp windowId={windowId} params={browserParams} />;
       }

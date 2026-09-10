@@ -19,11 +19,8 @@ interface MapRendererProps {
   onNavigate: (url: string) => void;
 }
 
-/**
- * The Gemini map is a 3:2 static city illustration. Leaflet's Simple CRS lets
- * us keep the image itself as the world while still getting native pan/zoom,
- * markers, tooltips and popups.
- */
+/** The Gemini map is a 3:2 static city illustration. Leaflet's Simple CRS
+ * keeps the image as the world while providing native pan/zoom and overlays. */
 const MAP_IMAGE = '/Gemini_Generated_Image_3x2rto3x2rto3x2r.jpeg';
 const MAP_WIDTH = 150;
 const MAP_HEIGHT = 100;
@@ -66,10 +63,18 @@ const markerIcon = (category: string, selected = false) => {
   });
 };
 
+const InitialViewport: React.FC = () => {
+  const map = useMap();
+  useEffect(() => {
+    map.fitBounds(MAP_BOUNDS, { padding: [18, 18] });
+  }, [map]);
+  return null;
+};
+
 const MapViewport: React.FC<{ location: MapLocation | null }> = ({ location }) => {
   const map = useMap();
   useEffect(() => {
-    if (location) map.flyTo(toMapPoint(location), 0, { duration: 0.45 });
+    if (location) map.flyTo(toMapPoint(location), 1.2, { duration: 0.45 });
   }, [location, map]);
   return null;
 };
@@ -144,6 +149,7 @@ export const MapRenderer: React.FC<MapRendererProps> = ({ onNavigate }) => {
           className="absolute inset-0"
         >
           <ImageOverlay url={MAP_IMAGE} bounds={MAP_BOUNDS} />
+          <InitialViewport />
           <ZoomControl position="bottomright" />
           <MapViewport location={selectedLocation} />
           <MapReset resetKey={resetKey} />

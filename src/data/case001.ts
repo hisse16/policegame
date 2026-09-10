@@ -8,97 +8,33 @@ export type CaseDocument = {
   tags?: string[];
 };
 
-export type CasePerson = {
-  id: string;
-  name: string;
-  role: string;
-  note: string;
-};
+export type CasePerson = { id: string; name: string; role: string; note: string };
 
 export const CASE_001 = {
   id: 'CASE-001',
-  title: 'The Empty Room',
-  subtitle: 'A woman disappeared without taking her coat.',
+  title: 'THE EMPTY ROOM',
+  subtitle: 'A woman vanished. The room tells a different story.',
   date: 'October 14, 2026',
   client: 'Margaret Bell',
-  premise:
-    'Your agency has been open for twelve days. This is the first case that arrives without a police referral, a lawyer, or a name you recognize. A woman has vanished from a locked apartment. Her sister believes she was taken. The police do not.',
+  premise: 'Anna Bell disappeared on October 12. Police believe she left voluntarily. Her sister hired Blackwood Detective Agency because Anna left behind the things she would never leave without.',
   documents: [
-    {
-      id: 'doc-client-letter',
-      type: 'letter',
-      title: 'Letter from Margaret Bell',
-      date: 'October 13, 2026',
-      source: 'Delivered by hand',
-      content:
-        'Mr. / Ms. Detective,\n\nMy sister Anna has been missing since Monday night. The police say she left voluntarily. I know my sister. She would not leave without her coat, and she would never leave the kitchen window open in October.\n\nThere is something else. When I went back to her flat yesterday, the clock in the kitchen was running eleven minutes slow. Anna was obsessive about that clock.\n\nPlease do not tell me to wait another forty-eight hours. I have already waited too long.\n\n— Margaret',
-      tags: ['Anna Bell', 'kitchen clock', 'open window'],
-    },
-    {
-      id: 'doc-newspaper',
-      type: 'newspaper',
-      title: 'LOCAL TEACHER REPORTED MISSING',
-      date: 'October 14, 2026',
-      source: 'The Evening Register',
-      content:
-        'LOCAL TEACHER REPORTED MISSING\n\nAnna Bell, 34, was reported missing from her apartment on Monday evening. Police say there are currently no indications of foul play. Bell was last seen leaving St. Alden Primary School shortly after 6 p.m.\n\nNeighbours described Bell as private and punctual. Detective Inspector Martin Vale said there was no evidence at present to suggest that Bell did not leave the property voluntarily.\n\nPolice ask anyone with information to contact the central station.',
-      tags: ['34', '6 p.m.', 'Martin Vale', 'voluntary disappearance'],
-    },
-    {
-      id: 'doc-report',
-      type: 'report',
-      title: 'Initial Missing Person Report',
-      date: 'October 13, 2026',
-      source: 'North District Police',
-      content:
-        'SUBJECT: BELL, ANNA\n\nResidence: 14 Harrow Lane, Flat 3B\nLast confirmed sighting: October 12, 18:12 — St. Alden Primary School\n\nAttending officer notes: Front door locked. No visible damage. Personal handbag located inside residence. Coat located on hallway hook. Kitchen window found open approximately 12 cm. No obvious disturbance.\n\nNeighbour statement: Mrs. Helen Ward reports hearing the front door close at approximately 21:10. She did not see anyone enter or leave.\n\nPreliminary classification: Voluntary absence — LOW RISK.\n\nAdditional note: Kitchen clock displayed 20:59 at time of police attendance. Current verified time was 21:10.',
-      tags: ['21:10', 'coat', 'handbag', 'kitchen clock', 'Helen Ward'],
-    },
-    {
-      id: 'doc-photo',
-      type: 'photograph',
-      title: 'Photograph — Bell Apartment',
-      date: 'October 13, 2026',
-      source: 'Scene photographer',
-      content:
-        'A photograph of Anna Bell’s kitchen. The window is open. The wall clock reads 20:59. On the counter sits a ceramic mug with a dark ring of coffee around its base. Beside it is a folded supermarket receipt dated October 12.\n\nThe photograph contains no obvious sign of forced entry.',
-      tags: ['20:59', 'receipt', 'coffee mug', 'window'],
-    },
-    {
-      id: 'doc-note',
-      type: 'note',
-      title: 'Handwritten Note',
-      date: 'Undated',
-      source: 'Found inside Anna Bell’s book',
-      content:
-        'Do not trust the time on the wall.\n\nCheck what happened before the rain.\n\nA.B.',
-      tags: ['time', 'rain', 'A.B.'],
-    },
+    { id: 'doc-client-letter', type: 'letter', title: 'Letter from Margaret Bell', date: 'October 13, 2026', source: 'Delivered by hand', content: 'Mr. Blackwood,\n\nMy sister Anna is missing. The police say she left willingly. I do not believe them.\n\nHer coat is still behind the door. Her handbag is still in the kitchen. Her glasses are beside her bed. She would not leave without any of them.\n\nThere is one more thing. Anna called me Sunday night and said she had found something at work that frightened her. She would not tell me what. She said, “If I stop answering, look at the old photograph.”\n\nPlease go to her apartment before you decide anything.\n\n— Margaret Bell', tags: ['CLIENT', 'OLD PHOTOGRAPH', 'SUNDAY CALL'] },
+    { id: 'doc-newspaper', type: 'newspaper', title: 'Teacher Reported Missing', date: 'October 14, 2026', source: 'The Evening Register', content: 'TEACHER REPORTED MISSING\n\nAnna Bell, 34, was reported missing Monday night after failing to return home. Police say there is currently no evidence of foul play.\n\nBell was last seen leaving St. Alden Primary School at approximately 6:12 p.m.\n\nDetective Inspector Martin Vale said the circumstances were consistent with a voluntary disappearance.\n\nNeighbours reported hearing nothing unusual.', tags: ['6:12 PM', 'MARTIN VALE', 'VOLUNTARY'] },
+    { id: 'doc-report', type: 'report', title: 'Initial Missing Person Report', date: 'October 13, 2026 · 22:14', source: 'North District Police', content: 'SUBJECT: BELL, ANNA\nADDRESS: 14 HARROW LANE, FLAT 3B\n\nLast confirmed sighting: October 12, 18:12 — St. Alden Primary School.\n\nFront door locked. No visible damage. Handbag inside. Coat inside. Glasses inside bedroom. Kitchen window open approximately 12 cm. No obvious disturbance.\n\nNeighbour Helen Ward reports hearing the front door close at approximately 21:10. She did not see anyone.\n\nKitchen wall clock displayed 20:59 when officers arrived at 21:10.\n\nPreliminary classification: VOLUNTARY ABSENCE — LOW RISK.', tags: ['21:10', '20:59', 'COAT', 'BAG', 'WINDOW'] },
+    { id: 'doc-photo', type: 'photograph', title: 'Scene Photograph — Kitchen', date: 'October 13, 2026', source: 'Police evidence', content: 'A photograph of Anna Bell’s kitchen. The wall clock reads 20:59. The window is open. A mug sits beside a folded supermarket receipt. The receipt is dated October 12 and shows a purchase at 20:31. The apartment appears orderly.', tags: ['20:59', '20:31', 'RECEIPT', 'WINDOW'] },
+    { id: 'doc-note', type: 'note', title: 'Anna’s Handwritten Note', date: 'Found October 13', source: 'Inside Anna’s book', content: 'Do not trust the wall clock.\n\nCheck what happened before the rain.\n\nAsk why the photograph was kept.', tags: ['CLOCK', 'RAIN', 'PHOTOGRAPH'] },
+    { id: 'doc-school', type: 'report', title: 'St. Alden Staff Statement', date: 'October 14, 2026', source: 'School administration', content: 'Anna Bell left the school at 18:12 on October 12. She appeared distracted. At 17:40 she asked whether the old attendance archive was still stored in the basement.\n\nColleague Daniel Hayes states that he spoke with Anna at approximately 18:05. He says she was worried about “a mistake in an old record.”\n\nAnna did not mention taking leave or travelling.', tags: ['18:12', 'DANIEL HAYES', 'OLD ARCHIVE'] },
+    { id: 'doc-receipt', type: 'report', title: 'Supermarket Transaction Record', date: 'October 12, 2026', source: 'Mercer Market', content: 'Transaction 4418\nDate: October 12\nTime: 20:31\nLocation: Mercer Market, Harrow Lane\n\nItems: coffee, bread, batteries.\nPayment: Anna Bell debit card.\n\nThe market is approximately seven minutes from 14 Harrow Lane on foot.', tags: ['20:31', 'ANNA BELL', 'MERCER MARKET'] },
+    { id: 'doc-witness', type: 'report', title: 'Second Statement — Helen Ward', date: 'October 15, 2026', source: 'Interview at Blackwood office', content: 'I heard the front door of Flat 3B close at about 21:10. I remember because I was waiting for the kettle to boil.\n\nBut I need to correct something from my first statement. I heard footsteps on the stairs afterward. They were heavy. Anna was quiet when she walked.\n\nI also remember seeing a dark blue sedan outside earlier that evening. I thought it belonged to someone visiting the building.', tags: ['21:10', 'FOOTSTEPS', 'BLUE SEDAN'] },
+    { id: 'doc-archive', type: 'report', title: 'St. Alden Attendance Archive — 1998', date: 'October 16, 2026', source: 'School basement archive', content: 'A damaged attendance ledger contains a handwritten correction beside the name of a former employee. The correction uses the same unusual blue-ink mark found on a page Anna had photocopied.\n\nA loose photograph tucked inside the ledger shows the school staff in 1998. On the back: “Do not file this under staff.”\n\nOne face has been scratched out.', tags: ['1998', 'BLUE INK', 'PHOTOGRAPH'] },
+    { id: 'doc-photograph', type: 'photograph', title: 'The Old Photograph', date: '1998 · recovered October 16', source: 'School archive', content: 'A staff photograph from 1998. The back reads: “Do not file this under staff.” A man standing near the rear entrance has been marked with a blue ink circle. His face is not scratched out. The name written beneath the photograph is: E. Ward.', tags: ['1998', 'E. WARD', 'BLUE INK'] },
   ] as CaseDocument[],
   people: [
-    {
-      id: 'anna-bell',
-      name: 'Anna Bell',
-      role: 'Missing person · Primary school teacher',
-      note: '34 years old. Known for punctuality and meticulous routines.',
-    },
-    {
-      id: 'margaret-bell',
-      name: 'Margaret Bell',
-      role: 'Client · Anna’s sister',
-      note: 'Insists Anna would not leave without her coat.',
-    },
-    {
-      id: 'helen-ward',
-      name: 'Helen Ward',
-      role: 'Neighbour',
-      note: 'Reports hearing the front door at approximately 21:10.',
-    },
-    {
-      id: 'martin-vale',
-      name: 'Martin Vale',
-      role: 'Police inspector',
-      note: 'Publicly described the disappearance as voluntary.',
-    },
+    { id: 'anna-bell', name: 'Anna Bell', role: 'Missing person · Primary school teacher', note: '34. Meticulous, punctual, and recently investigating an old school record.' },
+    { id: 'margaret-bell', name: 'Margaret Bell', role: 'Client · Anna’s sister', note: 'Received a worrying call from Anna the night before the disappearance.' },
+    { id: 'helen-ward', name: 'Helen Ward', role: 'Neighbour', note: 'Heard a door and later heavy footsteps. Saw a dark blue sedan.' },
+    { id: 'daniel-hayes', name: 'Daniel Hayes', role: 'Colleague', note: 'Spoke to Anna shortly before she left school. Knows about the old archive.' },
+    { id: 'martin-vale', name: 'Martin Vale', role: 'Police inspector', note: 'Classified the disappearance as voluntary before several details were resolved.' },
+    { id: 'edward-ward', name: 'E. Ward', role: 'Person in 1998 photograph', note: 'Name appears in an old school photograph. Relationship to Helen is not yet established.' },
   ] as CasePerson[],
 };

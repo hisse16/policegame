@@ -15,7 +15,7 @@ const launcher = () => document.querySelector('#os-app-launcher') as HTMLElement
 const click = (e: HTMLElement | null) => e?.click();
 const openLauncher = () => { if (!launcher()) click(appButton()); };
 const dock = () => document.querySelector('.fixed.bottom-2') as HTMLElement | null;
-const windowByApp = (app: string) => Array.from(document.querySelectorAll('[id^="window-win_"]')).find(e => (e.textContent || '').includes(({ 'police-records':'PRIS Database','investigation-notebook':'Case Notebook','investigation-board':'Investigation Board','evidence-lab':'Evidence & Forensics','terminal':'Terminal','browser':'Browser','police-mail':'Police Mail','file-manager':'Files','settings':'Settings','final-deduction':'Case Determination' } as Record<string,string>)[app] || '')) as HTMLElement | null;
+const windowByApp = (app: string) => Array.from(document.querySelectorAll('[id^="window-win_"]')).find(e => (e.textContent || '').includes(({ 'police-records':'PRIS Database','investigation-notebook':'Detective Notebook','investigation-board':'Investigation Board','evidence-lab':'Evidence & Forensics','terminal':'Digital Forensics Terminal','browser':'Open Source Research','police-mail':'Department Communications','file-manager':'Evidence Archive','settings':'Workstation Settings','final-deduction':'Case Determination' } as Record<string,string>)[app] || '')) as HTMLElement | null;
 
 export const WorkstationTutorial: React.FC<WorkstationTutorialProps> = ({ onFinish }) => {
   const { openApp, closeWindow, windows } = useOS();
@@ -28,25 +28,25 @@ export const WorkstationTutorial: React.FC<WorkstationTutorialProps> = ({ onFini
     const pris = (tab: string, text: string): Step => ({ title: `PRIS — ${tab}`, text, app: 'police-records', target: () => byText(tab), prepare: () => window.setTimeout(() => click(byText(tab)), 150) });
     const appStep = (title: string, app: string, text: string): Step => ({ title, text, app, target: () => windowByApp(app) || dock() });
     return [
-      { title:'Welcome', text:'This is the workstation. The tutorial explains the interface; it does not prescribe how to solve Case 27.', target: appButton, prepare: openLauncher },
-      { title:'Applications', text:'Applications opens the full application launcher.', target: appButton, prepare: openLauncher },
-      { title:'Launcher search', text:'Use this field to filter applications by name.', target: () => launcher()?.querySelector('input') as HTMLElement | null, prepare: openLauncher },
-      { title:'Launcher categories', text:'These categories filter the launcher. They do not represent case objectives.', target: () => launcher()?.querySelector('.w-28 button') as HTMLElement | null, prepare: openLauncher },
+      { title:'Welcome', text:'This is the investigative workstation. The tutorial explains the interface; it does not prescribe how to solve Case 27.', target: appButton, prepare: openLauncher },
+      { title:'Applications', text:'Applications opens the full investigative tool launcher.', target: appButton, prepare: openLauncher },
+      { title:'Launcher search', text:'Use this field to find a specific investigative tool without turning the launcher into a task list.', target: () => launcher()?.querySelector('input') as HTMLElement | null, prepare: openLauncher },
+      { title:'Launcher categories', text:'These categories organize tools. They do not represent case objectives.', target: () => launcher()?.querySelector('.w-28 button') as HTMLElement | null, prepare: openLauncher },
       { title:'Open an application', text:'Application entries launch tools. The tutorial opens tools automatically later.', target: () => launcher()?.querySelector('.flex-1 button') as HTMLElement | null, prepare: openLauncher },
       { title:'Date & time', text:'The centered clock shows workstation date and time. Case records have their own timestamps.', target: clockButton, prepare: () => click(clockButton()) },
-      { title:'Network', text:'The Wi-Fi icon shows the simulated police-network state. Click it to inspect available networks.', target: topButton.bind(null,1), prepare: () => click(topButton(1)) },
+      { title:'Network', text:'The Wi-Fi icon shows the simulated police-network state.', target: topButton.bind(null,1), prepare: () => click(topButton(1)) },
       { title:'Sound', text:'The speaker icon controls workstation volume and mute.', target: topButton.bind(null,2), prepare: () => click(topButton(2)) },
       { title:'Battery', text:'The battery indicator shows simulated workstation power status.', target: () => top()?.querySelector(':scope > div:last-child > div:nth-child(3)') as HTMLElement | null },
       { title:'Notifications', text:'The bell opens system and investigation notifications.', target: topButton.bind(null,3), prepare: () => click(topButton(3)) },
-      { title:'Account menu', text:'The investigator menu contains the workstation account and power controls.', target: topButton.bind(null,4), prepare: () => click(topButton(4)) },
-      { title:'Dock', text:'The bottom dock provides quick access to available applications.', target: dock },
-      appStep('PRIS Database','police-records','PRIS is the main police-records application.'),
+      { title:'Account menu', text:'The investigator menu contains workstation account and power controls.', target: topButton.bind(null,4), prepare: () => click(topButton(4)) },
+      { title:'Dock', text:'The bottom dock provides quick access to investigative applications.', target: dock },
+      appStep('PRIS Database','police-records','PRIS is the central case-intelligence database.'),
       pris('Case Overview','The case-focused landing view provides context without assigning a route.'),
       pris('Cases','Browse case dockets and histories.'),
       pris('Persons','Find victims, witnesses, suspects and other people.'),
       pris('Evidence','Inspect evidence records and chain of custody.'),
       pris('Reports','Read original and supplemental reports; conflicting versions can matter.'),
-      pris('Locations','Locations are text records containing addresses, intersections, directions and distances. There is no GIS map.'),
+      pris('Locations','Locations are text records containing addresses, intersections, directions and distances.'),
       pris('Vehicles','Vehicle records contain identifiers, ownership and sightings.'),
       pris('Officers','Officer records contain personnel information, service history and assignments.'),
       pris('Organizations','Organization records connect companies and institutions to records.'),
@@ -54,15 +54,15 @@ export const WorkstationTutorial: React.FC<WorkstationTutorialProps> = ({ onFini
       { title:'Window controls', text:'Every application window has Minimize, Maximize/Restore and Close controls in its title bar.', app:'police-records', target: () => windowByApp('police-records')?.querySelector('button[title="Minimize"]') as HTMLElement | null },
       { title:'Maximize / Restore', text:'This control switches a window between floating and workstation size.', app:'police-records', target: () => windowByApp('police-records')?.querySelector('button[title="Maximize"],button[title="Restore"]') as HTMLElement | null },
       { title:'Close window', text:'This closes the current application window. The tutorial does not click it automatically.', app:'police-records', target: () => windowByApp('police-records')?.querySelector('button[title="Close"]') as HTMLElement | null },
-      appStep('Case Notebook','investigation-notebook','The Notebook is your private working memory for notes, questions and theories.'),
+      appStep('Detective Notebook','investigation-notebook','The Notebook is your private working memory for notes, questions and theories.'),
       { title:'Notebook tabs', text:'The Notebook separates your notes, bookmarks, timeline and contradictions.', app:'investigation-notebook', target: () => windowByApp('investigation-notebook')?.querySelector('main button') as HTMLElement | null },
       appStep('Investigation Board','investigation-board','The Board is your mental model. Create relationships when you believe a connection is meaningful.'),
       appStep('Evidence & Forensics','evidence-lab','Use the Evidence Lab for physical evidence, forensic findings and custody information.'),
-      appStep('Terminal','terminal','Terminal provides command-line access to digital traces and logs.'),
-      appStep('Browser','browser','Browser is for public research and the web sources represented in the case.'),
-      appStep('Police Mail','police-mail','Police Mail contains internal correspondence and department communication.'),
-      appStep('Files','file-manager','Files is the workstation filesystem for recovered documents and supporting material.'),
-      appStep('Settings','settings','Settings controls workstation preferences; it does not change case progress.'),
+      appStep('Digital Forensics Terminal','terminal','Use the terminal for low-level logs, audit traces and digital forensic utilities.'),
+      appStep('Open Source Research','browser','Use public records, historical archives and other external sources when a clue takes you beyond department records.'),
+      appStep('Department Communications','police-mail','Department communications contain internal correspondence, memoranda and personnel messages.'),
+      appStep('Evidence Archive','file-manager','The Evidence Archive contains recovered documents and workstation material.'),
+      appStep('Workstation Settings','settings','Settings controls the workstation and does not determine case progress.'),
       appStep('Case Determination','final-deduction','Case Determination is where the final conclusion is submitted after building a supported theory.'),
       { title:'Your judgment', text:'There is no mandatory checklist or GIS map. Read, compare, notice contradictions and build your own explanation.', target:dock },
       { title:'Start Case 27', text:'The tour is complete. PRIS is opened automatically; begin with CASE-1998-027 and investigate from the evidence.', app:'police-records', target:() => windowByApp('police-records') || dock() }

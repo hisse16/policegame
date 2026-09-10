@@ -3,13 +3,7 @@ import { Icon } from '../common/Icon';
 import { useOS } from '../../context/OSContext';
 
 interface WorkstationTutorialProps { onFinish: () => void; }
-type TutorialStep = {
-  title: string;
-  text: string;
-  target?: () => HTMLElement | null;
-  app?: string;
-  prepare?: () => void;
-};
+type TutorialStep = { title: string; text: string; target?: () => HTMLElement | null; app?: string; prepare?: () => void };
 
 const allButtons = () => Array.from(document.querySelectorAll('button')) as HTMLElement[];
 const textButton = (...names: string[]) => allButtons().find((el) => names.includes((el.textContent || '').trim())) || null;
@@ -23,20 +17,23 @@ const labelButton = (...names: string[]) => allButtons().find((el) => {
 }) || null;
 const dockButton = (name: string) => titleButton(name);
 const clickButton = (button: HTMLElement | null) => { if (button) button.click(); };
-const openLauncher = () => clickButton(textButton('Applications'));
+const ensureLauncher = () => {
+  if (!document.querySelector('#os-app-launcher')) clickButton(textButton('Applications'));
+};
 const openTopMenu = (...names: string[]) => clickButton(titleButton(...names) || labelButton(...names) || textButton(...names));
-const openPRISTTab = (name: string) => clickButton(textButton(name));
+const openPRISTab = (name: string) => clickButton(textButton(name));
 
 export const WorkstationTutorial: React.FC<WorkstationTutorialProps> = ({ onFinish }) => {
   const { openApp } = useOS();
   const [index, setIndex] = useState(0);
   const [rect, setRect] = useState<DOMRect | null>(null);
-  const step = useMemo<TutorialStep[]>(() => [
-    { title: 'Welcome', text: 'This is a guided tour of the workstation. The tour shows where things are; it does not teach you how to solve Case 27.', target: () => textButton('Applications'), prepare: openLauncher },
-    { title: 'Applications', text: 'The Applications button opens the full application launcher. You can use it whenever you need a tool.', target: () => textButton('Applications'), prepare: openLauncher },
-    { title: 'Launcher search', text: 'Use this field to filter applications by name instead of browsing the whole launcher.', target: () => document.querySelector('#os-app-launcher input') as HTMLElement | null, prepare: openLauncher },
-    { title: 'Launcher categories', text: 'Categories narrow the launcher list by type. They are a convenience, not part of case progression.', target: () => document.querySelector('#os-app-launcher .w-28 button') as HTMLElement | null, prepare: openLauncher },
-    { title: 'Open an application', text: 'Click an application entry to launch it. The launcher can be reopened later from Applications.', target: () => document.querySelector('#os-app-launcher .flex-1 button') as HTMLElement | null, prepare: openLauncher },
+
+  const steps = useMemo<TutorialStep[]>(() => [
+    { title: 'Welcome', text: 'This is a guided tour of the workstation. The tour shows where things are; it does not teach you how to solve Case 27.', target: () => textButton('Applications'), prepare: ensureLauncher },
+    { title: 'Applications', text: 'The Applications button opens the full application launcher. You can use it whenever you need a tool.', target: () => textButton('Applications'), prepare: ensureLauncher },
+    { title: 'Launcher search', text: 'Use this field to filter applications by name instead of browsing the whole launcher.', target: () => document.querySelector('#os-app-launcher input') as HTMLElement | null, prepare: ensureLauncher },
+    { title: 'Launcher categories', text: 'Categories narrow the launcher list by type. They are a convenience, not part of case progression.', target: () => document.querySelector('#os-app-launcher .w-28 button') as HTMLElement | null, prepare: ensureLauncher },
+    { title: 'Open an application', text: 'Click an application entry to launch it. The launcher can be reopened later from Applications.', target: () => document.querySelector('#os-app-launcher .flex-1 button') as HTMLElement | null, prepare: ensureLauncher },
     { title: 'Date & time', text: 'The clock shows workstation time. Investigation records contain their own event timestamps, so always read the source of a time.', target: () => labelButton('Date', 'Calendar') || document.querySelector('header button') as HTMLElement | null, prepare: () => openTopMenu('Date', 'Calendar') },
     { title: 'Network', text: 'This menu shows the simulated workstation network state. It is system information, not a case clue by itself.', target: () => titleButton('Network:') || labelButton('Network'), prepare: () => openTopMenu('Network:', 'Network') },
     { title: 'Sound', text: 'This control changes workstation volume and mute state. It has no effect on case evidence.', target: () => titleButton('Volume:') || labelButton('Volume'), prepare: () => openTopMenu('Volume:', 'Volume') },
@@ -44,7 +41,6 @@ export const WorkstationTutorial: React.FC<WorkstationTutorialProps> = ({ onFini
     { title: 'Notifications', text: 'System and investigation notifications appear here. Read them as information, not as a task list.', target: () => titleButton('Notifications') || labelButton('Notifications'), prepare: () => openTopMenu('Notifications') },
     { title: 'Account menu', text: 'The account menu contains profile and system controls. The power controls are not needed for investigating the case.', target: () => textButton('investigator') || labelButton('Account', 'User'), prepare: () => openTopMenu('Account', 'User', 'investigator') },
     { title: 'Dock', text: 'The bottom dock provides quick access to installed applications. It remains available while you investigate.', target: () => document.querySelector('[class*="fixed bottom-2"]') as HTMLElement | null },
-
     { title: 'PRIS Database', text: 'PRIS is the main police-records application. This step opens it automatically so you can see the real application.', target: () => dockButton('PRIS Database'), app: 'police-records' },
     { title: 'PRIS — Case Overview', text: 'The Case Overview is the case-focused landing view. It provides context without assigning an investigation route.', target: () => textButton('Case Overview'), app: 'police-records', prepare: () => openPRISTab('Case Overview') },
     { title: 'PRIS — Cases', text: 'Cases contains case dockets and histories. Open records when you have a reason to examine them.', target: () => textButton('Cases'), app: 'police-records', prepare: () => openPRISTab('Cases') },
@@ -56,7 +52,6 @@ export const WorkstationTutorial: React.FC<WorkstationTutorialProps> = ({ onFini
     { title: 'PRIS — Officers', text: 'Officer records contain personnel information, service history and assignments.', target: () => textButton('Officers'), app: 'police-records', prepare: () => openPRISTab('Officers') },
     { title: 'PRIS — Organizations', text: 'Organization records connect companies, institutions and departments to other records.', target: () => textButton('Organizations'), app: 'police-records', prepare: () => openPRISTab('Organizations') },
     { title: 'PRIS — Search', text: 'Search can locate records by names, case numbers, addresses, identifiers and other indexed text.', target: () => textButton('Search'), app: 'police-records', prepare: () => openPRISTab('Search') },
-
     { title: 'Window controls', text: 'Application windows have Minimize, Maximize/Restore and Close controls in their title bar. The tutorial only highlights them; it never clicks destructive controls for you.', target: () => titleButton('Minimize'), app: 'police-records' },
     { title: 'Maximize / Restore', text: 'This control switches a window between its floating size and the available workstation size.', target: () => titleButton('Maximize', 'Restore'), app: 'police-records' },
     { title: 'Close window', text: 'This closes the current application window. The application can be reopened from the dock or launcher.', target: () => titleButton('Close'), app: 'police-records' },
@@ -74,7 +69,7 @@ export const WorkstationTutorial: React.FC<WorkstationTutorialProps> = ({ onFini
     { title: 'Start Case 27', text: 'The tour is complete. PRIS opens automatically; from there you can begin with CASE-1998-027 and investigate from the evidence.', target: () => dockButton('PRIS Database'), app: 'police-records' }
   ], []);
 
-  const currentStep = step[index];
+  const currentStep = steps[index];
   const retryTimerRef = useRef<number | null>(null);
 
   const refresh = () => {
@@ -88,16 +83,13 @@ export const WorkstationTutorial: React.FC<WorkstationTutorialProps> = ({ onFini
   useEffect(() => {
     let stopped = false;
     const started = Date.now();
-
     if (currentStep.app) openApp(currentStep.app);
     currentStep.prepare?.();
 
     const poll = () => {
       if (stopped) return;
       refresh();
-      if (Date.now() - started < 3000) {
-        retryTimerRef.current = window.setTimeout(poll, 100);
-      }
+      if (Date.now() - started < 3000) retryTimerRef.current = window.setTimeout(poll, 100);
     };
     poll();
 
@@ -114,7 +106,7 @@ export const WorkstationTutorial: React.FC<WorkstationTutorialProps> = ({ onFini
   }, [index, currentStep.app, currentStep.prepare]);
 
   const finish = () => onFinish();
-  const next = () => index === step.length - 1 ? finish() : setIndex((i) => i + 1);
+  const next = () => index === steps.length - 1 ? finish() : setIndex((i) => i + 1);
 
   const spotlight = rect ? {
     left: Math.max(4, rect.left - 8),
@@ -138,12 +130,12 @@ export const WorkstationTutorial: React.FC<WorkstationTutorialProps> = ({ onFini
         <div className="p-5">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-950 border border-blue-800 flex items-center justify-center text-blue-300 shrink-0"><Icon name="MousePointer2" size={18} /></div>
-            <div className="min-w-0 flex-1"><div className="text-[9px] uppercase tracking-[.18em] text-blue-400">WORKSTATION TUTORIAL · {index + 1}/{step.length}</div><h2 className="mt-1 text-base font-semibold text-white">{currentStep.title}</h2></div>
+            <div className="min-w-0 flex-1"><div className="text-[9px] uppercase tracking-[.18em] text-blue-400">WORKSTATION TUTORIAL · {index + 1}/{steps.length}</div><h2 className="mt-1 text-base font-semibold text-white">{currentStep.title}</h2></div>
           </div>
           <p className="mt-3 text-[11px] leading-5 text-slate-300">{currentStep.text}</p>
           <div className="mt-4 flex items-center justify-between gap-3">
             <button onClick={finish} className="text-[10px] text-slate-500 hover:text-slate-200">Skip tutorial</button>
-            <button onClick={next} className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold uppercase tracking-wider">{index === step.length - 1 ? 'Finish & Start' : 'Next'}</button>
+            <button onClick={next} className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold uppercase tracking-wider">{index === steps.length - 1 ? 'Finish & Start' : 'Next'}</button>
           </div>
         </div>
       </div>

@@ -28,9 +28,6 @@ const NORTHBRIDGE_BOUNDS: [[number, number], [number, number]] = [
   [40.731, -73.980],
 ];
 
-// Northbridge uses a fictional 0-100 city grid. Keeping the projection here
-// means story distances remain stable while the basemap supplies the modern
-// cartographic texture (roads, buildings, parks, shoreline, labels).
 const toLatLng = (loc: MapLocation): [number, number] => [
   NORTHBRIDGE_CENTER[0] + (loc.y - 50) * 0.00052,
   NORTHBRIDGE_CENTER[1] + (loc.x - 50) * 0.00068,
@@ -41,10 +38,7 @@ const gridPointToLatLng = ([x, y]: [number, number]): [number, number] => [
   NORTHBRIDGE_CENTER[1] + (x - 50) * 0.00068,
 ];
 
-const ALL_LOCATIONS: MapLocation[] = [
-  ...MAP_LOCATIONS,
-  ...CASE_27_MAP_LOCATIONS,
-];
+const ALL_LOCATIONS: MapLocation[] = [...MAP_LOCATIONS, ...CASE_27_MAP_LOCATIONS];
 
 const markerColor = (category: string) => {
   switch (category) {
@@ -164,17 +158,7 @@ export const MapRenderer: React.FC<MapRendererProps> = ({ onNavigate }) => {
           ))}
 
           {showPlaces && filteredLocations.map(location => (
-            <Marker
-              key={location.id}
-              position={toLatLng(location)}
-              icon={markerIcon(location.category, selectedLocation?.id === location.id)}
-              eventHandlers={{
-                click: event => {
-                  event.originalEvent.stopPropagation();
-                  selectLocation(location);
-                },
-              }}
-            >
+            <Marker key={location.id} position={toLatLng(location)} icon={markerIcon(location.category, selectedLocation?.id === location.id)} eventHandlers={{ click: event => { event.originalEvent.stopPropagation(); selectLocation(location); } }}>
               <Tooltip direction="top" offset={[0, -25]} opacity={0.98}>{location.name}</Tooltip>
               <Popup closeButton>
                 <div className="w-[270px]">
@@ -205,7 +189,7 @@ export const MapRenderer: React.FC<MapRendererProps> = ({ onNavigate }) => {
           {searchQuery && <button onClick={() => setSearchQuery('')} className="mr-1 rounded-full p-2 text-slate-400 hover:bg-slate-100" aria-label="Clear search"><Icon name="X" className="h-4 w-4" /></button>}
           <div className="h-7 w-px bg-slate-200" />
           <button onClick={() => setShowPlaces(value => !value)} className={`mx-1 rounded-lg p-2 ${showPlaces ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`} title={showPlaces ? 'Hide locations' : 'Show locations'} aria-label="Toggle locations"><Icon name="MapPinned" className="h-4 w-4" /></button>
-          <button onClick={() => setShowCaseRoads(value => !value)} className={`mr-1 rounded-lg p-2 ${showCaseRoads ? 'bg-slate-100 text-slate-700' : 'text-slate-500 hover:bg-slate-100'}`} title={showCaseRoads ? 'Hide case roads' : 'Show case roads'} aria-label="Toggle case roads"><Icon name="Route" className="h-4 w-4" /></button>
+          <button onClick={() => setShowCaseRoads(value => !value)} className={`mr-1 rounded-lg p-2 ${showCaseRoads ? 'bg-slate-100 text-slate-700' : 'text-slate-500 hover:bg-slate-100'}`} title={showCaseRoads ? 'Hide case roads' : 'Show case roads'} aria-label="Toggle case roads"><Icon name="MapPin" className="h-4 w-4" /></button>
         </div>
 
         {searchQuery && (

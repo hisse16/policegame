@@ -13,8 +13,6 @@ const ACT_UNLOCKS: Record<number, string[]> = {
   6: ['final-deduction']
 };
 
-// Only investigation tools are pinned. The workstation should feel like a toolset,
-// not a second checklist, and there is no map application anymore.
 const PINNED_APPS = [
   'police-records',
   'evidence-lab',
@@ -42,12 +40,10 @@ export const Dock: React.FC = () => {
   );
 
   const openAppIds = Array.from(new Set<string>(windows.map((w) => w.appId)));
-  const dockAppIds: string[] = Array.from(
-    new Set([...PINNED_APPS.filter((id) => unlockedApps.has(id)), ...openAppIds])
-  );
+  const dockAppIds: string[] = Array.from(new Set([...PINNED_APPS.filter((id) => unlockedApps.has(id)), ...openAppIds]));
 
   return (
-    <div className="fixed bottom-2 left-1/2 -translate-x-1/2 z-40 select-none">
+    <div data-os-dock="true" className="fixed bottom-2 left-1/2 -translate-x-1/2 z-40 select-none">
       <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-950/88 backdrop-blur-md border border-slate-700/60 rounded-xl shadow-2xl">
         {dockAppIds.map((appId) => {
           const appDef = APP_REGISTRY[appId];

@@ -55,8 +55,9 @@ const normalize = (value: unknown): void => {
     const current = object[key];
     if (typeof current === 'string') {
       let next = current;
-      if (isMercer || (isReed && mentionsMercer)) next = next.replace(/P-006219/g, 'P-005118');
-      if (isReed) next = next.replace(/P-005118/g, EVELYN_REED_ID);
+      if (isMercer || (isReed && mentionsMercer)) next = next.replace(/P-006219/g, '__DANIEL_MERCER__');
+      if (isReed) next = next.replace(/P-005118/g, '__EVELYN_REED__');
+      next = next.replace(/__DANIEL_MERCER__/g, 'P-005118').replace(/__EVELYN_REED__/g, EVELYN_REED_ID);
       object[key] = next;
     } else {
       normalize(current);

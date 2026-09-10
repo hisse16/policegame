@@ -64,21 +64,11 @@ export const InvestigationNotebookApp: React.FC<InvestigationNotebookAppProps> =
 
       <div className="flex items-center gap-1 px-3 py-1.5 bg-slate-900/90 border-b border-slate-800 text-xs overflow-x-auto shrink-0">
         {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-3 py-1.5 rounded flex items-center gap-1.5 text-xs whitespace-nowrap transition-colors ${
-              activeTab === tab.id
-                ? 'bg-blue-600 text-white font-semibold shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-            }`}
-          >
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-3 py-1.5 rounded flex items-center gap-1.5 text-xs whitespace-nowrap transition-colors ${activeTab === tab.id ? 'bg-blue-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'}`}>
             <Icon name={tab.icon} size={13} />
             <span>{tab.label}</span>
             {tab.count !== undefined && tab.count > 0 && (
-              <span className={`ml-1 px-1.5 py-0.2 text-[10px] rounded-full font-mono ${activeTab === tab.id ? 'bg-blue-800 text-blue-100' : 'bg-slate-800 text-slate-300'}`}>
-                {tab.count}
-              </span>
+              <span className={`ml-1 px-1.5 py-0.2 text-[10px] rounded-full font-mono ${activeTab === tab.id ? 'bg-blue-800 text-blue-100' : 'bg-slate-800 text-slate-300'}`}>{tab.count}</span>
             )}
           </button>
         ))}
@@ -87,19 +77,11 @@ export const InvestigationNotebookApp: React.FC<InvestigationNotebookAppProps> =
       <div className="flex-1 overflow-y-auto p-4 bg-slate-950">
         {activeTab === 'notes' && (
           <div className="max-w-4xl mx-auto h-full flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs font-bold text-slate-200">Your investigation notes</div>
-                <div className="text-[11px] text-slate-500 mt-1">Write theories, names, questions, times or anything you want to remember.</div>
-              </div>
-              <Icon name="PenLine" size={16} className="text-slate-600" />
+            <div>
+              <div className="text-xs font-bold text-slate-200">Your investigation notes</div>
+              <div className="text-[11px] text-slate-500 mt-1">Write theories, names, questions, times or anything you want to remember.</div>
             </div>
-            <textarea
-              value={playerNotes}
-              onChange={handleNotesChange}
-              placeholder="Start writing..."
-              className="flex-1 min-h-[320px] w-full resize-none bg-slate-900/70 border border-slate-800 rounded-lg p-4 text-sm text-slate-200 leading-relaxed placeholder-slate-600 focus:outline-none focus:border-blue-700/70 font-mono"
-            />
+            <textarea value={playerNotes} onChange={handleNotesChange} placeholder="Start writing..." className="flex-1 min-h-[320px] w-full resize-none bg-slate-900/70 border border-slate-800 rounded-lg p-4 text-sm text-slate-200 leading-relaxed placeholder-slate-600 focus:outline-none focus:border-blue-700/70 font-mono" />
           </div>
         )}
 
@@ -107,18 +89,14 @@ export const InvestigationNotebookApp: React.FC<InvestigationNotebookAppProps> =
           <div className="max-w-4xl mx-auto space-y-3">
             <div>
               <div className="text-xs font-bold text-slate-200">Records you chose to keep</div>
-              <div className="text-[11px] text-slate-500 mt-1">Bookmarks are deliberately player-controlled. Nothing is promoted as your next task.</div>
+              <div className="text-[11px] text-slate-500 mt-1">Bookmarks are player-controlled. Nothing here is presented as your next task.</div>
             </div>
             {bookmarks.length === 0 ? (
               <div className="p-8 border border-dashed border-slate-800 rounded-lg text-center text-xs text-slate-600">No bookmarked records yet.</div>
             ) : bookmarks.map((record) => (
-              <button
-                key={record.id}
-                onClick={() => onOpenRecord?.(record.id)}
-                className="w-full p-3 bg-slate-900/70 border border-slate-800 hover:border-blue-700/50 rounded-lg text-left transition-colors"
-              >
-                <div className="text-xs font-mono font-semibold text-slate-200">{record.title || record.id}</div>
-                <div className="text-[10px] text-slate-500 mt-1">{record.id} // {(record.type || 'record').toUpperCase()}</div>
+              <button key={record.recordId} onClick={() => onOpenRecord?.(record.recordId)} className="w-full p-3 bg-slate-900/70 border border-slate-800 hover:border-blue-700/50 rounded-lg text-left transition-colors">
+                <div className="text-xs font-mono font-semibold text-slate-200">{record.title || record.recordId}</div>
+                <div className="text-[10px] text-slate-500 mt-1">{record.recordId} // {(record.recordType || 'record').toUpperCase()}</div>
               </button>
             ))}
           </div>
@@ -128,16 +106,13 @@ export const InvestigationNotebookApp: React.FC<InvestigationNotebookAppProps> =
           <div className="max-w-4xl mx-auto space-y-3">
             <div>
               <div className="text-xs font-bold text-slate-200">Timeline anchors</div>
-              <div className="text-[11px] text-slate-500 mt-1">These are observations surfaced by records you have actually examined.</div>
+              <div className="text-[11px] text-slate-500 mt-1">Observations surfaced by records you have actually examined.</div>
             </div>
             {timelineEvents.length === 0 ? (
               <div className="p-8 border border-dashed border-slate-800 rounded-lg text-center text-xs text-slate-600">No timeline anchors recorded yet.</div>
             ) : timelineEvents.map((event, index) => (
               <div key={event.id || index} className="p-3 bg-slate-900/70 border border-slate-800 rounded-lg">
-                <div className="flex items-center gap-2 text-[10px] font-mono text-blue-400">
-                  <span>{event.date || 'DATE UNKNOWN'}</span>
-                  {event.time && <span>{event.time}</span>}
-                </div>
+                <div className="flex items-center gap-2 text-[10px] font-mono text-blue-400"><span>{event.date || 'DATE UNKNOWN'}</span>{event.time && <span>{event.time}</span>}</div>
                 <div className="text-xs text-slate-200 mt-1 leading-relaxed">{event.description || event.title || String(event)}</div>
                 {event.source && <div className="text-[10px] text-slate-600 mt-2 font-mono">SOURCE: {event.source}</div>}
               </div>
@@ -155,10 +130,7 @@ export const InvestigationNotebookApp: React.FC<InvestigationNotebookAppProps> =
               <div className="p-8 border border-dashed border-slate-800 rounded-lg text-center text-xs text-slate-600">No contradictions recorded yet.</div>
             ) : contradictions.map((item, index) => (
               <div key={item.id || index} className="p-4 bg-amber-950/20 border border-amber-900/50 rounded-lg">
-                <div className="flex items-center gap-2 text-xs font-semibold text-amber-300">
-                  <Icon name="AlertTriangle" size={14} />
-                  {item.title || 'Record conflict'}
-                </div>
+                <div className="flex items-center gap-2 text-xs font-semibold text-amber-300"><Icon name="AlertTriangle" size={14} />{item.title || 'Record conflict'}</div>
                 <p className="text-xs text-slate-300 leading-relaxed mt-2">{item.description || item.text || String(item)}</p>
               </div>
             ))}

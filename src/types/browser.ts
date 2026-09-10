@@ -26,7 +26,7 @@ export interface HistoryEntry {
   id: string;
   url: string;
   title: string;
-  timestamp: string; // ISO string
+  timestamp: string;
   visitCount: number;
 }
 
@@ -40,7 +40,7 @@ export interface DownloadItem {
   mimeType: string;
   localVFSPath: string;
   dateAdded: string;
-  content: string; // file content written to VFS
+  content: string;
 }
 
 export interface AdItem {
@@ -148,11 +148,11 @@ export interface ProductItem {
 export interface MapLocation {
   id: string;
   name: string;
-  category: 'Government' | 'Emergency' | 'Commercial' | 'Transit' | 'Food' | 'Park';
+  category: 'Government' | 'Emergency' | 'Commercial' | 'Transit' | 'Food' | 'Park' | 'Residential' | 'Road';
   address: string;
   district: string;
-  x: number; // 0 - 100 percentage coordinates
-  y: number; // 0 - 100 percentage coordinates
+  x: number;
+  y: number;
   description: string;
   icon: string;
   phone?: string;

@@ -70,10 +70,5 @@ export const APP_REGISTRY: Record<string, AppDefinition> = {
     id: 'police-mail', name: 'Police Mail', icon: 'Mail',
     description: 'Internal NPD department email, official memos, and sworn personnel directory', category: 'Office',
     defaultWidth: 1040, defaultHeight: 680, minWidth: 740, minHeight: 480, singleInstance: true
-  },
-  'investigation-map': {
-    id: 'investigation-map', name: 'Investigation Map', icon: 'Map',
-    description: 'Northbridge GIS crime mapping, historical timelines, and vehicle trajectory analysis', category: 'System',
-    defaultWidth: 1080, defaultHeight: 700, minWidth: 760, minHeight: 500, singleInstance: true
   }
 };

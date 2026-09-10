@@ -1,447 +1,212 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-import React, { useEffect, useRef, useState } from 'react';
-import { GameProvider, useGame } from './context/GameContext';
-import { OSProvider, useOS } from './context/OSContext';
-import { Desktop } from './components/desktop/Desktop';
-import { TopPanel } from './components/desktop/TopPanel';
-import { Dock } from './components/desktop/Dock';
-import { WindowManager } from './components/desktop/WindowManager';
-import { LockScreen } from './components/desktop/LockScreen';
-import { AltTabSwitcher } from './components/desktop/AltTabSwitcher';
-import { NotificationToasts } from './components/desktop/NotificationToasts';
-import { MenuBackground } from './components/menu/MenuBackground';
-import { MainMenuScreen } from './components/menu/MainMenuScreen';
-import { BootTransitionScreen } from './components/menu/BootTransitionScreen';
-import { ShutdownTransitionScreen } from './components/menu/ShutdownTransitionScreen';
-import { RestartTransitionScreen } from './components/menu/RestartTransitionScreen';
-import { HowToPlayScreen } from './components/menu/HowToPlayScreen';
-import { GameSettingsScreen } from './components/menu/GameSettingsScreen';
-import { CreditsScreen } from './components/menu/CreditsScreen';
-import { InvestigatorOnboarding } from './components/desktop/InvestigatorOnboarding';
-import { WorkstationTutorial } from './components/desktop/WorkstationTutorial';
-import { CaseResolvedEpilogue } from './components/desktop/CaseResolvedEpilogue';
-import { storyEngine } from './services/story/storyEngine';
-import { playSound } from './services/soundService';
-import { DISCOVERY_STEPS } from './services/story/storyData';
-import { InvestigationAction, StoryState } from './types/story';
-import { Icon } from './components/common/Icon';
+import React, { useMemo, useState } from 'react';
+import { Search, FileText, Users, GitBranch, Lightbulb, Check, X, ChevronRight, Eye, RotateCcw } from 'lucide-react';
 
-const ACT_NAMES: Record<number, string> = {
-  1: 'THE ARCHIVE',
-  2: 'THE ORIGINAL INVESTIGATION',
-  3: 'THE PEOPLE AROUND ANNA',
-  4: 'THE MISSING YEARS',
-  5: 'THE COVERED RECORD',
-  6: 'THE TRUTH',
+type Evidence = {
+  id: string;
+  title: string;
+  type: string;
+  date: string;
+  summary: string;
+  detail: string;
+  tags: string[];
+  unlocks?: string[];
 };
 
-const getStepAct = (stepId: string, fallback: number) =>
-  stepId === 'step_39' ? 4 : fallback;
-
-const getActProgress = (state: StoryState) => {
-  const actSteps = DISCOVERY_STEPS.filter(
-    (step) => getStepAct(step.id, step.act) === state.currentAct,
-  );
-
-  return {
-    completed: actSteps.filter((step) =>
-      state.discoveredStepIds.includes(step.id),
-    ).length,
-    total: actSteps.length,
-  };
+type Person = {
+  id: string;
+  name: string;
+  role: string;
+  statement: string;
+  note: string;
 };
 
-const getFallbackAction = (state: StoryState): InvestigationAction | null => {
-  if (state.currentAct !== 4 || state.discoveredStepIds.includes('step_39')) {
-    return null;
+type Thread = {
+  id: string;
+  title: string;
+  description: string;
+  evidence: string[];
+  question: string;
+};
+
+const EVIDENCE: Evidence[] = [
+  {
+    id: 'r-112', title: 'Original Disappearance Report', type: 'POLICE REPORT', date: '15 SEP 1998',
+    summary: 'Anna Claire Bell was reported missing after failing to return home. The report places her last known movements near Willow Street.',
+    detail: 'Filed at 08:14. The report says Anna left Bell Electronics shortly after 22:00 and was expected home within minutes. A vehicle described as a dark sedan was noted near 42 Willow Street. The report contains no explanation for the later change in the official timeline.',
+    tags: ['Anna Bell', 'Willow Street', '22:00'], unlocks: ['timeline']
+  },
+  {
+    id: 'inc-0914', title: 'CAD Incident Log', type: 'DISPATCH RECORD', date: '14 SEP 1998',
+    summary: 'The emergency call was logged at 22:17, while the responding detective later recorded a substantially different arrival time.',
+    detail: 'Raw dispatch data records the call at 22:17. The first field note attributed to Detective Hayes begins at 22:40. No corresponding explanation appears in the surviving dispatch record. The gap is small enough to matter and large enough to require an explanation.',
+    tags: ['22:17', '22:40', 'Hayes'], unlocks: ['timeline']
+  },
+  {
+    id: 'r-114', title: 'Supplemental Report', type: 'POLICE REPORT', date: '18 SEP 1998',
+    summary: 'A later report quietly changes the description of Anna’s final known location and adds Detective Hayes as the primary author.',
+    detail: 'The supplemental narrative says Anna was last seen closer to Willow Street than the original report indicates. It was filed three days after the disappearance. The document references an interview that is absent from the main case index.',
+    tags: ['Hayes', 'last sighting', 'missing interview']
+  },
+  {
+    id: 'gable', title: 'Witness Statement — Martha Gable', type: 'WITNESS STATEMENT', date: '15 SEP 1998',
+    summary: 'A neighbor heard a car door and an argument shortly before 22:30.',
+    detail: 'Martha Gable, resident of 40 Willow Street, says she heard a vehicle stop outside, followed by a single car door and raised voices. She could not see the people involved. Her statement places the event before the time given in Hayes’s supplemental report.',
+    tags: ['22:30', 'vehicle', 'voices']
+  },
+  {
+    id: 'leo', title: 'Witness Statement — Leo Vance', type: 'WITNESS STATEMENT', date: '16 SEP 1998',
+    summary: 'A diner clerk remembers seeing Anna’s car leave the industrial district at approximately 22:15.',
+    detail: 'Leo Vance worked the night counter on Grand Avenue. He remembers Anna because he recognized the Bell Electronics parking permit on her windshield. His estimate puts her departure earlier than the later police timeline.',
+    tags: ['22:15', 'Anna Bell', 'Bell Electronics']
+  },
+  {
+    id: 'hayes', title: 'Officer Profile — Daniel Hayes', type: 'PERSONNEL FILE', date: '1998',
+    summary: 'Hayes was the lead detective on Case 27 and authored the supplemental report.',
+    detail: 'Badge 3014. Assigned to the Case 27 investigation in September 1998. The personnel file records a transfer in 2008 but does not explain it. His name also appears on an older 1991 case involving Crownline-linked freight.',
+    tags: ['Badge 3014', 'Case 27', 'Crownline']
+  },
+  {
+    id: 'case-87', title: 'Case 1987-014', type: 'HISTORICAL CASE', date: '03 NOV 1987',
+    summary: 'An older burglary at 42 Willow Street involved a warehouse connected to Crownline Logistics.',
+    detail: 'The case concerns missing freight records and equipment from a warehouse at the same address later connected to Case 27. One name in the old report is partially obscured in the surviving copy. Crownline Logistics appears in the property and transport records.',
+    tags: ['1987', 'Willow Street', 'Crownline']
+  },
+  {
+    id: 'crownline', title: 'Crownline Logistics — Cross-reference', type: 'BUSINESS RECORD', date: '1987–1998',
+    summary: 'Crownline appears in both the 1987 warehouse investigation and Bell Electronics shipping records.',
+    detail: 'The company handled freight for Bell Electronics. The surviving cross-reference does not establish a crime by itself. It establishes a relationship worth testing against the people, dates and movements already in the case.',
+    tags: ['Crownline', 'Bell Electronics', 'freight']
   }
+];
 
-  const step = DISCOVERY_STEPS.find((candidate) => candidate.id === 'step_39');
-  if (!step) return null;
+const PEOPLE: Person[] = [
+  { id: 'anna', name: 'Anna Claire Bell', role: 'Missing person · Bell Electronics auditor', statement: 'No surviving statement.', note: 'Her disappearance is the central event. Several records concern what she discovered at work shortly before she vanished.' },
+  { id: 'hayes', name: 'Daniel Hayes', role: 'Detective · Badge 3014', statement: 'Primary investigator on Case 27.', note: 'Authored the supplemental report and later transferred departments.' },
+  { id: 'gable', name: 'Martha Gable', role: 'Neighbor · Witness', statement: 'Heard a vehicle, a door and raised voices.', note: 'Her timing conflicts with the later police narrative.' },
+  { id: 'leo', name: 'Leo Vance', role: 'Diner clerk · Witness', statement: 'Saw Anna’s car leave around 22:15.', note: 'His statement is referenced indirectly but is difficult to find in the original case index.' }
+];
 
-  return {
-    stepId: step.id,
-    title: step.title,
-    description: step.description,
-    actionType: step.trigger.type,
-    targetId: undefined,
-    searchTerm: step.trigger.searchTerm,
-    hintLevel: 1,
-    hintText: step.hintLevel1,
-    isOptional: false,
-  };
-};
+const THREADS: Thread[] = [
+  { id: 'timeline', title: 'The missing 20 minutes', description: 'The surviving records disagree about when Anna was last seen and when police arrived.', evidence: ['r-112', 'inc-0914', 'gable', 'leo'], question: 'Which timestamp can be trusted, and what happened during the gap?' },
+  { id: 'hayes', title: 'Hayes and the altered narrative', description: 'The lead detective appears at the exact point where the timeline changes.', evidence: ['r-114', 'hayes', 'inc-0914'], question: 'Why did the supplemental report change the sequence of events?' },
+  { id: 'willow', title: 'Why Willow Street?', description: 'The disappearance happened at a location that already appears in an older investigation.', evidence: ['r-112', 'case-87', 'crownline'], question: 'What connects the 1987 warehouse case to Anna?' },
+  { id: 'crownline', title: 'The freight connection', description: 'Crownline links an old property case to Anna’s workplace, but the connection is not yet a conclusion.', evidence: ['hayes', 'case-87', 'crownline'], question: 'Who had a reason to keep this relationship out of the case?' }
+];
 
-const InvestigationGuide: React.FC = () => {
-  const { openApp } = useOS();
-  const [action, setAction] = useState<InvestigationAction | null>(() => {
-    const state = storyEngine.getState();
-    return storyEngine.getNextInvestigationAction() || getFallbackAction(state);
+const INITIAL_DISCOVERED = ['r-112', 'inc-0914', 'r-114', 'gable', 'leo', 'hayes', 'case-87', 'crownline'];
+
+const App: React.FC = () => {
+  const [view, setView] = useState<'case' | 'evidence' | 'people' | 'threads' | 'deduction'>('case');
+  const [selectedEvidence, setSelectedEvidence] = useState<string | null>(null);
+  const [activeThread, setActiveThread] = useState<string>('timeline');
+  const [query, setQuery] = useState('');
+  const [examined, setExamined] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('case27_examined') || '[]'); } catch { return []; }
   });
-  const [collapsed, setCollapsed] = useState(false);
-  const [completionFlash, setCompletionFlash] = useState<{
-    title: string;
-    message: string;
-  } | null>(null);
-  const previousStateRef = useRef<StoryState | null>(null);
+  const [killer, setKiller] = useState('');
+  const [motive, setMotive] = useState('');
+  const [method, setMethod] = useState('');
+  const [time, setTime] = useState('');
+  const [submitted, setSubmitted] = useState(false);
 
-  useEffect(() => {
-    return storyEngine.subscribe((nextState) => {
-      const previous = previousStateRef.current;
-      setAction(
-        storyEngine.getNextInvestigationAction() || getFallbackAction(nextState),
-      );
+  const visibleEvidence = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return EVIDENCE;
+    return EVIDENCE.filter(e => `${e.title} ${e.type} ${e.summary} ${e.detail} ${e.tags.join(' ')}`.toLowerCase().includes(q));
+  }, [query]);
 
-      if (previous) {
-        const completedIds = nextState.discoveredStepIds.filter(
-          (id) => !previous.discoveredStepIds.includes(id),
-        );
-
-        if (completedIds.length > 0) {
-          const completedStep = DISCOVERY_STEPS.find(
-            (step) => step.id === completedIds[completedIds.length - 1],
-          );
-
-          if (completedStep) {
-            const completedAct = getStepAct(
-              completedStep.id,
-              completedStep.act,
-            );
-            const actComplete = previous.currentAct !== nextState.currentAct;
-
-            setCompletionFlash({
-              title: actComplete
-                ? `ACT ${completedAct} // FILED`
-                : 'CASE NOTE UPDATED',
-              message: actComplete
-                ? `${ACT_NAMES[completedAct]} has been fully reviewed. A new investigative thread is now available.`
-                : `${completedStep.title} // Your case record has been updated.`,
-            });
-
-            playSound(actComplete ? 'reveal' : 'notify');
-            window.setTimeout(() => setCompletionFlash(null), 4200);
-          }
-        }
-      }
-
-      previousStateRef.current = nextState;
-    });
-  }, []);
-
-  const state = storyEngine.getState();
-  const act = storyEngine.getCurrentAct();
-  const progress = getActProgress(state);
-  const progressPercent =
-    progress.total > 0 ? Math.round((progress.completed / progress.total) * 100) : 0;
-
-  const openLead = () => {
-    if (!action) return;
-    playSound('click');
-
-    if (action.actionType === 'search_term') {
-      openApp('police-records', {
-        section: 'advanced_search',
-        search: action.searchTerm || '',
-      });
-      return;
+  const examine = (id: string) => {
+    setSelectedEvidence(id);
+    if (!examined.includes(id)) {
+      const next = [...examined, id];
+      setExamined(next);
+      try { localStorage.setItem('case27_examined', JSON.stringify(next)); } catch {}
     }
-
-    if (action.actionType === 'view_record' && action.targetId) {
-      openApp('police-records', { recordId: action.targetId });
-      return;
-    }
-
-    if (action.actionType === 'view_file' && action.targetId) {
-      openApp('file-manager', { path: action.targetId });
-      return;
-    }
-
-    if (action.actionType === 'view_webpage' && action.targetId) {
-      openApp('browser', { initialUrl: action.targetId });
-      return;
-    }
-
-    openApp('investigation-notebook');
   };
+
+  const resetCase = () => {
+    setExamined([]); setSubmitted(false); setKiller(''); setMotive(''); setMethod(''); setTime('');
+    try { localStorage.removeItem('case27_examined'); } catch {}
+  };
+
+  const selected = EVIDENCE.find(e => e.id === selectedEvidence);
+  const thread = THREADS.find(t => t.id === activeThread) || THREADS[0];
+  const score = [killer.toLowerCase().includes('hayes'), motive.toLowerCase().includes('ledger'), method.toLowerCase().includes('car'), time.includes('22:')].filter(Boolean).length;
 
   return (
-    <>
-      {completionFlash && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-[9000] w-[min(520px,calc(100vw-2rem))]">
-          <div className="bg-slate-950/98 border border-emerald-500/50 rounded-xl shadow-2xl overflow-hidden">
-            <div className="px-4 py-2 border-b border-slate-800 bg-emerald-950/30 flex items-center gap-2">
-              <Icon name="CheckCircle2" size={16} className="text-emerald-400" />
-              <span className="text-[11px] uppercase tracking-widest font-bold text-emerald-300">
-                {completionFlash.title}
-              </span>
-            </div>
-            <div className="px-4 py-3 text-sm text-slate-200">
-              {completionFlash.message}
-            </div>
-          </div>
-        </div>
-      )}
+    <div className="game-shell">
+      <header className="topbar">
+        <div className="brand"><span className="brand-mark">27</span><div><strong>CASE 27</strong><span>INVESTIGATION FILE</span></div></div>
+        <div className="case-status"><span className="status-dot" /> OPEN CASE <span className="divider" /> 14 SEP 1998</div>
+        <button className="icon-button" title="Reset investigation" onClick={resetCase}><RotateCcw size={16} /></button>
+      </header>
 
-      {action && (
-        <div
-          className={`absolute left-4 bottom-16 z-[8000] ${
-            collapsed ? 'w-auto' : 'w-[340px] max-w-[calc(100vw-2rem)]'
-          }`}
-        >
-          {collapsed ? (
-            <button
-              onClick={() => {
-                playSound('click');
-                setCollapsed(false);
-              }}
-              className="bg-slate-900/95 border border-slate-700 rounded-lg px-3 py-2 shadow-2xl text-xs text-slate-200 flex items-center gap-2"
-            >
-              <Icon name="Compass" size={14} className="text-blue-400" />
-              CASE DESK · {act.title} · {progress.completed}/{progress.total}
-            </button>
-          ) : (
-            <div className="bg-slate-950/95 backdrop-blur border border-slate-700 rounded-xl shadow-2xl overflow-hidden">
-              <div className="px-3 py-2 bg-slate-900 border-b border-slate-800">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-bold text-slate-300">
-                    <Icon name="Compass" size={13} className="text-blue-400" />
-                    CASE DESK
-                  </div>
-                  <button
-                    onClick={() => {
-                      playSound('click');
-                      setCollapsed(true);
-                    }}
-                    className="text-slate-500 hover:text-slate-200"
-                  >
-                    —
-                  </button>
-                </div>
-                <div className="mt-1 text-[9px] text-slate-500 uppercase tracking-wider">
-                  {act.title} · {progress.completed}/{progress.total}
-                </div>
-                <div className="mt-2 h-1.5 rounded-full bg-slate-800 overflow-hidden">
-                  <div
-                    className="h-full bg-blue-500 transition-all duration-300"
-                    style={{ width: `${progressPercent}%` }}
-                  />
-                </div>
-              </div>
+      <main className="workspace">
+        <aside className="sidebar">
+          <div className="case-heading"><span>CASE FILE</span><h1>Anna Claire Bell</h1><p>Missing person · Case-1998-027</p></div>
+          <nav>
+            <button className={view === 'case' ? 'nav-item active' : 'nav-item'} onClick={() => setView('case')}><FileText size={17}/> Overview</button>
+            <button className={view === 'evidence' ? 'nav-item active' : 'nav-item'} onClick={() => setView('evidence')}><Search size={17}/> Evidence <b>{examined.length}</b></button>
+            <button className={view === 'people' ? 'nav-item active' : 'nav-item'} onClick={() => setView('people')}><Users size={17}/> People</button>
+            <button className={view === 'threads' ? 'nav-item active' : 'nav-item'} onClick={() => setView('threads')}><GitBranch size={17}/> Investigation Threads</button>
+            <button className={view === 'deduction' ? 'nav-item active' : 'nav-item'} onClick={() => setView('deduction')}><Lightbulb size={17}/> Your Deduction</button>
+          </nav>
+          <div className="sidebar-note"><span>CASE PRINCIPLE</span><p>Evidence gives you questions. The case does not give you tasks.</p></div>
+        </aside>
 
-              <div className="p-3 space-y-2.5">
-                <div className="text-sm font-semibold text-slate-100">
-                  {action.title}
-                </div>
-                <p className="text-[11px] leading-relaxed text-slate-400">
-                  {action.hintText || action.description}
-                </p>
-                <div className="text-[10px] text-slate-500 leading-relaxed">
-                  This is a gentle lead, not an answer. The evidence decides the case.
-                </div>
-                <div className="flex gap-2 pt-1">
-                  <button
-                    onClick={openLead}
-                    className="flex-1 px-2.5 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-semibold"
-                  >
-                    Open lead
-                  </button>
-                  <button
-                    onClick={() => {
-                      playSound('click');
-                      openApp('investigation-notebook');
-                    }}
-                    className="px-2.5 py-1.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-[11px]"
-                  >
-                    Notebook
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </>
-  );
-};
-
-const WorkstationOS: React.FC = () => {
-  const { powerState, openApp } = useOS();
-  const { gameSettings } = useGame();
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [showTutorial, setShowTutorial] = useState(false);
-  const [showEpilogue, setShowEpilogue] = useState(false);
-
-  useEffect(() => {
-    if (powerState !== 'running') return;
-
-    try {
-      if (
-        localStorage.getItem('investigator_os_story_state_v1') &&
-        !localStorage.getItem('investigator_os_story_migrated_v2')
-      ) {
-        storyEngine.resetState();
-        localStorage.removeItem('investigator_os_story_state_v1');
-        localStorage.setItem('investigator_os_story_migrated_v2', 'true');
-      }
-    } catch {
-      // Storage can be unavailable in restricted browser contexts.
-    }
-
-    if (!sessionStorage.getItem('investigator_onboarding_seen')) {
-      window.setTimeout(() => setShowOnboarding(true), 500);
-    } else if (!sessionStorage.getItem('investigator_workstation_tutorial_v2')) {
-      window.setTimeout(() => setShowTutorial(true), 450);
-    }
-  }, [powerState]);
-
-  useEffect(() => {
-    return storyEngine.subscribe((state) => {
-      if (state.caseResolved && !sessionStorage.getItem('case_27_epilogue_seen')) {
-        const timer = window.setTimeout(() => {
-          if (!sessionStorage.getItem('case_27_epilogue_seen')) {
-            playSound('success');
-            setShowEpilogue(true);
-          }
-        }, 2200);
-        return () => window.clearTimeout(timer);
-      }
-      return undefined;
-    });
-  }, []);
-
-  const finishOnboarding = () => {
-    setShowOnboarding(false);
-    window.setTimeout(() => setShowTutorial(true), 350);
-  };
-
-  const finishTutorial = () => {
-    try {
-      sessionStorage.setItem('investigator_workstation_tutorial_v2', 'true');
-    } catch {
-      // Session storage can be unavailable in restricted browser contexts.
-    }
-    setShowTutorial(false);
-  };
-
-  if (powerState === 'locked' || powerState === 'logging_out') {
-    return <LockScreen />;
-  }
-
-  return (
-    <div
-      className={`relative w-screen h-screen overflow-hidden select-none bg-slate-950 font-sans text-slate-100 ${
-        gameSettings.highContrast ? 'contrast-125' : ''
-      }`}
-      style={{
-        transform:
-          gameSettings.uiScale !== 1 ? `scale(${gameSettings.uiScale})` : undefined,
-        transformOrigin: 'top left',
-        width: gameSettings.uiScale !== 1 ? `${100 / gameSettings.uiScale}vw` : '100vw',
-        height: gameSettings.uiScale !== 1 ? `${100 / gameSettings.uiScale}vh` : '100vh',
-      }}
-    >
-      <TopPanel />
-      <Desktop>
-        <WindowManager />
-      </Desktop>
-      <Dock />
-      <AltTabSwitcher />
-      <NotificationToasts />
-      <InvestigationGuide />
-
-      {showOnboarding && (
-        <InvestigatorOnboarding
-          onComplete={finishOnboarding}
-          onOpenPRIS={() => {
-            playSound('click');
-            openApp('police-records');
-          }}
-        />
-      )}
-
-      {!showOnboarding && showTutorial && (
-        <WorkstationTutorial onFinish={finishTutorial} />
-      )}
-
-      {showEpilogue && (
-        <CaseResolvedEpilogue
-          onClose={() => {
-            sessionStorage.setItem('case_27_epilogue_seen', 'true');
-            setShowEpilogue(false);
-          }}
-        />
-      )}
-
-      {gameSettings.crtScanlines && (
-        <div
-          className="absolute inset-0 pointer-events-none opacity-[0.05] z-[9999]"
-          style={{
-            backgroundImage:
-              'linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.45) 50%)',
-            backgroundSize: '100% 3px',
-          }}
-        />
-      )}
+        <section className="content">
+          {view === 'case' && <Overview onNavigate={setView} />}
+          {view === 'evidence' && <EvidenceView evidence={visibleEvidence} query={query} setQuery={setQuery} examined={examined} onExamine={examine} selected={selected} />}
+          {view === 'people' && <PeopleView />}
+          {view === 'threads' && <ThreadsView thread={thread} activeThread={activeThread} setActiveThread={setActiveThread} onEvidence={examine} />}
+          {view === 'deduction' && <DeductionView killer={killer} motive={motive} method={method} time={time} setKiller={setKiller} setMotive={setMotive} setMethod={setMethod} setTime={setTime} submitted={submitted} setSubmitted={setSubmitted} score={score} />}
+        </section>
+      </main>
     </div>
   );
 };
 
-const GameShell: React.FC = () => {
-  const { gameState, onComputerShutdown, onComputerRestart } = useGame();
+const Overview = ({ onNavigate }: { onNavigate: (v: any) => void }) => (
+  <div className="page fade-in">
+    <div className="eyebrow">CASE FILE · 1998-027</div>
+    <h2>Something in the official story is wrong.</h2>
+    <p className="lede">Anna Claire Bell disappeared on the night of September 14, 1998. The original case was closed. Years later, an audit found discrepancies in the record. You are reviewing the surviving evidence without a prescribed line of investigation.</p>
+    <div className="fact-grid">
+      <div><span>KNOWN</span><strong>Last confirmed activity</strong><p>Bell Electronics, shortly after 22:00.</p></div>
+      <div><span>KNOWN</span><strong>Emergency call</strong><p>CAD log records 22:17.</p></div>
+      <div><span>UNRESOLVED</span><strong>Last known location</strong><p>Records disagree about Willow Street.</p></div>
+      <div><span>UNRESOLVED</span><strong>Missing record</strong><p>A referenced interview is absent from the index.</p></div>
+    </div>
+    <div className="section-head"><div><span className="eyebrow">START WITH A QUESTION</span><h3>What bothers you?</h3></div></div>
+    <div className="question-cards">
+      <button onClick={() => onNavigate('evidence')}><span>01</span><strong>The timeline doesn't fit.</strong><small>Compare the raw dispatch log with witness accounts.</small><ChevronRight size={17}/></button>
+      <button onClick={() => onNavigate('threads')}><span>02</span><strong>Why does Willow Street matter?</strong><small>An older case happened at the same address.</small><ChevronRight size={17}/></button>
+      <button onClick={() => onNavigate('people')}><span>03</span><strong>Who shaped the record?</strong><small>Follow the people whose statements changed the case.</small><ChevronRight size={17}/></button>
+    </div>
+    <div className="warning"><strong>There are no objectives.</strong> Read what interests you. Form a theory when you think you have one.</div>
+  </div>
+);
 
-  switch (gameState) {
-    case 'MAIN_MENU':
-      return (
-        <div className="relative w-screen h-screen overflow-hidden bg-slate-950">
-          <MenuBackground />
-          <MainMenuScreen />
-        </div>
-      );
-    case 'HOW_TO_PLAY':
-      return (
-        <div className="relative w-screen h-screen overflow-hidden bg-slate-950">
-          <MenuBackground />
-          <HowToPlayScreen />
-        </div>
-      );
-    case 'SETTINGS':
-      return (
-        <div className="relative w-screen h-screen overflow-hidden bg-slate-950">
-          <MenuBackground />
-          <GameSettingsScreen />
-        </div>
-      );
-    case 'CREDITS':
-      return (
-        <div className="relative w-screen h-screen overflow-hidden bg-slate-950">
-          <MenuBackground />
-          <CreditsScreen />
-        </div>
-      );
-    case 'BOOTING':
-      return <BootTransitionScreen />;
-    case 'COMPUTER_SHUTTING_DOWN':
-      return <ShutdownTransitionScreen />;
-    case 'COMPUTER_RESTARTING':
-      return <RestartTransitionScreen />;
-    case 'COMPUTER_RUNNING':
-      return (
-        <OSProvider onShutdown={onComputerShutdown} onRestart={onComputerRestart}>
-          <WorkstationOS />
-        </OSProvider>
-      );
-    default:
-      return null;
-  }
-};
+const EvidenceView = ({ evidence, query, setQuery, examined, onExamine, selected }: any) => (
+  <div className="page fade-in">
+    <div className="page-title"><div><span className="eyebrow">CASE FILE</span><h2>Evidence</h2><p>Nothing is marked as the "right" clue. Decide what matters.</p></div><div className="search"><Search size={16}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search the case file..." /></div></div>
+    <div className="evidence-layout">
+      <div className="evidence-list">{evidence.map((e: Evidence) => <button key={e.id} className={`evidence-card ${selected?.id === e.id ? 'selected' : ''}`} onClick={() => onExamine(e.id)}><div className="evidence-meta"><span>{e.type}</span><time>{e.date}</time>{examined.includes(e.id) && <Check size={14}/>}</div><strong>{e.title}</strong><p>{e.summary}</p><div className="tags">{e.tags.map(t => <em key={t}>{t}</em>)}</div></button>)}</div>
+      <div className="evidence-detail">{selected ? <><div className="eyebrow">DOCUMENT VIEW</div><h3>{selected.title}</h3><span className="doc-type">{selected.type} · {selected.date}</span><p className="detail-text">{selected.detail}</p><div className="margin-note"><Eye size={15}/><span><b>Why might this matter?</b><br/>The game will not answer that for you. Compare this record with other evidence.</span></div></> : <div className="empty"><Search size={28}/><strong>Select a record</strong><span>Read it closely. Contradictions are often more useful than confirmations.</span></div>}</div>
+    </div>
+  </div>
+);
 
-export default function App() {
-  return (
-    <GameProvider>
-      <GameShell />
-    </GameProvider>
-  );
-}
+const PeopleView = () => (
+  <div className="page fade-in"><div className="eyebrow">CASE FILE</div><h2>People</h2><p className="lede">People are not objectives. They are sources, witnesses and possible explanations. Decide whose account deserves another look.</p><div className="people-grid">{PEOPLE.map(p => <article className="person-card" key={p.id}><div className="person-initial">{p.name.split(' ').map(x => x[0]).slice(0,2).join('')}</div><span className="eyebrow">{p.role}</span><h3>{p.name}</h3><blockquote>“{p.statement}”</blockquote><p>{p.note}</p></article>)}</div></div>
+);
+
+const ThreadsView = ({ thread, activeThread, setActiveThread, onEvidence }: any) => (
+  <div className="page fade-in"><div className="eyebrow">INVESTIGATION</div><h2>Threads</h2><p className="lede">A thread is a question you choose to pursue. It is deliberately not a task list.</p><div className="threads-layout"><div className="thread-list">{THREADS.map(t => <button key={t.id} className={activeThread === t.id ? 'thread-item active' : 'thread-item'} onClick={() => setActiveThread(t.id)}><span>{t.title}</span><small>{t.evidence.length} related records</small></button>)}</div><div className="thread-detail"><span className="eyebrow">OPEN THREAD</span><h3>{thread.title}</h3><p>{thread.description}</p><div className="question-box"><span>QUESTION</span><strong>{thread.question}</strong></div><span className="eyebrow">RELATED EVIDENCE</span><div className="related">{thread.evidence.map((id: string) => { const e = EVIDENCE.find(x => x.id === id); return e ? <button key={id} onClick={() => onEvidence(id)}><FileText size={15}/>{e.title}<ChevronRight size={14}/></button> : null; })}</div></div></div></div>
+);
+
+const DeductionView = ({ killer, motive, method, time, setKiller, setMotive, setMethod, setTime, submitted, setSubmitted, score }: any) => (
+  <div className="page fade-in deduction"><div className="eyebrow">YOUR NOTEBOOK</div><h2>Your deduction</h2><p className="lede">When you think the evidence supports a theory, commit it. You are not being asked to guess—you are being asked to explain.</p><div className="deduction-form"><label>WHO IS RESPONSIBLE?<input value={killer} onChange={e => setKiller(e.target.value)} placeholder="Name or role" /></label><label>WHY?<input value={motive} onChange={e => setMotive(e.target.value)} placeholder="What was the motive?" /></label><label>HOW?<input value={method} onChange={e => setMethod(e.target.value)} placeholder="How did it happen?" /></label><label>WHEN?<input value={time} onChange={e => setTime(e.target.value)} placeholder="Approximate time" /></label><button className="submit-theory" onClick={() => setSubmitted(true)}>Submit theory</button></div>{submitted && <div className={`result ${score === 4 ? 'correct' : ''}`}>{score === 4 ? <Check size={22}/> : <X size={22}/>}<div><strong>{score === 4 ? 'Your reconstruction holds.' : 'Something in the reconstruction is inconsistent.'}</strong><p>{score === 4 ? 'Hayes · the missing ledger · the vehicle · the 22:xx window.' : `${score}/4 elements align with the surviving evidence. The case does not reveal which element is wrong. Go back to the evidence.`}</p></div></div>}</div>
+);
+
+export default App;

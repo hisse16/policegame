@@ -83,84 +83,49 @@ function buildReport(request:Request):FieldReport {
   const witness=data.witness.filter(x=>hasAny(query,x.terms)).map(x=>x.text);
   const records=data.records.filter(x=>hasAny(query,x.terms)).map(x=>x.text);
   if(!findings.length&&!witness.length&&!records.length){ findings.push(data.findings[0].text); if(data.findings[1])findings.push(data.findings[1].text); }
-  return {
-    id:Date.now(),requestId:request.id,title:`FIELD REPORT — ${request.location.toUpperCase()}`,
-    date:new Date().toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}),
-    investigator:'Arthur Vale · Field Investigator',location:request.location,
-    findings:[...new Set(findings)],witness:[...new Set(witness)],records:[...new Set(records)],limitations:data.limitations
-  };
+  return {id:Date.now(),requestId:request.id,title:`FIELD REPORT — ${request.location.toUpperCase()}`,date:'October 17, 2026 · 16:40',investigator:'Arthur Vale · Field Investigator',location:request.location,findings:[...new Set(findings)],witness:[...new Set(witness)],records:[...new Set(records)],limitations:data.limitations};
 }
 
 export const DetectiveGame:React.FC=()=>{
   const saved=useMemo(loadSave,[]);
-  const [tab,setTab]=useState<Tab>(saved.tab||'office');
-  const [opened,setOpened]=useState<string[]>(saved.opened||[]);
-  const [notes,setNotes]=useState(saved.notes||'');
-  const [requests,setRequests]=useState<Request[]>(saved.requests||[]);
-  const [reports,setReports]=useState<FieldReport[]>(saved.reports||[]);
-  const [selectedDoc,setSelectedDoc]=useState<CaseDocument|null>(null);
-  const [selectedPerson,setSelectedPerson]=useState<CasePerson|null>(null);
-  const [selectedReport,setSelectedReport]=useState<FieldReport|null>(null);
-  const [selectedRequest,setSelectedRequest]=useState<Request|null>(null);
-  const [location,setLocation]=useState('');
-  const [focus,setFocus]=useState('');
-  const [timeframe,setTimeframe]=useState('');
-  const [instruction,setInstruction]=useState('');
-  const [notice,setNotice]=useState('');
-  const [now,setNow]=useState(Date.now());
+  const [tab,setTab]=useState<Tab>(saved.tab||'office'); const [opened,setOpened]=useState<string[]>(saved.opened||[]); const [notes,setNotes]=useState(saved.notes||'');
+  const [requests,setRequests]=useState<Request[]>(saved.requests||[]); const [reports,setReports]=useState<FieldReport[]>(saved.reports||[]);
+  const [selectedDoc,setSelectedDoc]=useState<CaseDocument|null>(null); const [selectedPerson,setSelectedPerson]=useState<CasePerson|null>(null); const [selectedReport,setSelectedReport]=useState<FieldReport|null>(null); const [selectedRequest,setSelectedRequest]=useState<Request|null>(null);
+  const [location,setLocation]=useState(''); const [focus,setFocus]=useState(''); const [timeframe,setTimeframe]=useState(''); const [instruction,setInstruction]=useState(''); const [notice,setNotice]=useState(''); const [now,setNow]=useState(Date.now());
   const [showIntro,setShowIntro]=useState(()=>localStorage.getItem(INTRO_KEY)!=='1');
 
   useEffect(()=>{localStorage.setItem(STORAGE_KEY,JSON.stringify({tab,opened,notes,requests,reports}));},[tab,opened,notes,requests,reports]);
   useEffect(()=>{const timer=window.setInterval(()=>setNow(Date.now()),1000);return()=>window.clearInterval(timer);},[]);
   useEffect(()=>{
-    const ready=requests.filter(r=>r.status==='pending'&&r.readyAt<=Date.now());
-    if(!ready.length)return;
-    ready.forEach(r=>{
-      const report=buildReport(r);
-      setReports(v=>v.some(x=>x.requestId===r.id)?v:[report,...v]);
-      setRequests(v=>v.map(x=>x.id===r.id?{...x,status:'complete',reportId:report.id}:x));
-      setSelectedReport(report);
-      setNotice('ARTHUR VALE — REPORT RECEIVED');
-    });
+    const ready=requests.filter(r=>r.status==='pending'&&r.readyAt<=Date.now()); if(!ready.length)return;
+    ready.forEach(r=>{const report=buildReport(r);setReports(v=>v.some(x=>x.requestId===r.id)?v:[report,...v]);setRequests(v=>v.map(x=>x.id===r.id?{...x,status:'complete',reportId:report.id}:x));setSelectedReport(report);setNotice('ARTHUR VALE — REPORT RECEIVED');});
   },[now,requests]);
 
   const openDocument=(d:CaseDocument)=>{setSelectedDoc(d);setOpened(v=>v.includes(d.id)?v:[...v,d.id]);};
   const sendRequest=()=>{
     if(!location.trim()||!instruction.trim()){setNotice('LOCATION AND INVESTIGATION QUESTION ARE REQUIRED');return;}
-    const sentAt=Date.now();
-    const request:Request={id:sentAt,location:location.trim(),focus:focus.trim(),timeframe:timeframe.trim(),instruction:instruction.trim(),status:'pending',sentAt,readyAt:sentAt+FIELD_DELAY_MS};
-    setRequests(v=>[request,...v]);setSelectedRequest(request);setTab('requests');setNotice('ARTHUR VALE HAS LEFT FOR THE FIELD');
-    setLocation('');setFocus('');setTimeframe('');setInstruction('');
+    const sentAt=Date.now(); const request:Request={id:sentAt,location:location.trim(),focus:focus.trim(),timeframe:timeframe.trim(),instruction:instruction.trim(),status:'pending',sentAt,readyAt:sentAt+FIELD_DELAY_MS};
+    setRequests(v=>[request,...v]);setSelectedRequest(request);setTab('requests');setNotice('ARTHUR VALE HAS LEFT FOR THE FIELD');setLocation('');setFocus('');setTimeframe('');setInstruction('');
   };
-  const closeIntro=()=>{localStorage.setItem(INTRO_KEY,'1');setShowIntro(false);};
-  const pending=requests.filter(r=>r.status==='pending');
+  const closeIntro=()=>{localStorage.setItem(INTRO_KEY,'1');setShowIntro(false);}; const pending=requests.filter(r=>r.status==='pending');
 
-  return <main className="blackwood-office">
-    <div className="office-backdrop" aria-hidden="true"/><div className="office-vignette" aria-hidden="true"/>
-    <header className="office-topbar"><div className="agency-mark"><span>BLACKWOOD</span><small>DETECTIVE AGENCY · PRIVATE INVESTIGATIONS</small></div><div className="case-strip"><i/> CASE 001 <b>THE EMPTY ROOM</b></div><div className="clock-strip">MON · OCT 17, 2026&nbsp;&nbsp; {new Date(now).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div></header>
-    <section className="office-workspace">
-      <aside className="office-left"><div className="folder-label">ACTIVE CASE</div><h1>Anna Bell</h1><p className="muted">Missing person · 34 · Teacher</p><div className="paper-rule"/>
-        {([['office','Desk','01'],['case','Case file','02'],['documents','Documents',String(opened.length)],['people','People',String(CASE_001.people.length)],['requests','Field requests',String(pending.length||'—')],['reports','Field reports',String(reports.length||'—')],['notes','Notebook','∞']] as [Tab,string,string][]).map(([id,label,count])=><button key={id} className={`desk-nav ${tab===id?'active':''}`} onClick={()=>setTab(id)}>{label}<span>{count}</span></button>)}
-        <div className="left-bottom"><div className="folder-label">OFFICE</div><div>BLACKWOOD · ROOM 3</div><div className="muted">You stay here. Arthur travels.</div></div>
-      </aside>
-      <section className="office-content">
-        {notice&&<button className="notice" onClick={()=>setNotice('')}>{notice} ×</button>}
-        {tab==='office'&&<Home pending={pending} reports={reports} onAssign={()=>setTab('requests')} onReport={r=>{setSelectedReport(r);setTab('reports');}}/>}
-        {tab==='case'&&<CaseFile onOpen={openDocument}/>} {tab==='documents'&&<Documents opened={opened} onOpen={openDocument}/>} {tab==='people'&&<People onOpen={setSelectedPerson}/>} 
-        {tab==='requests'&&<Requests requests={requests} selected={selectedRequest} setSelected={setSelectedRequest} onAssign={sendRequest} location={location} setLocation={setLocation} focus={focus} setFocus={setFocus} timeframe={timeframe} setTimeframe={setTimeframe} instruction={instruction} setInstruction={setInstruction} now={now}/>} 
-        {tab==='reports'&&<Reports reports={reports} selected={selectedReport} setSelected={setSelectedReport}/>} {tab==='notes'&&<Notebook notes={notes} setNotes={setNotes}/>} 
-      </section>
+  return <main className="blackwood-office"><div className="office-backdrop" aria-hidden="true"/><div className="office-vignette" aria-hidden="true"/>
+    <header className="office-topbar"><div className="agency-mark"><span>BLACKWOOD</span><small>DETECTIVE AGENCY · PRIVATE INVESTIGATIONS</small></div><div className="case-strip"><i/> CASE 001 <b>THE EMPTY ROOM</b></div><div className="clock-strip">MON · OCT 17, 2026&nbsp;&nbsp; 16:47</div></header>
+    <section className="office-workspace"><aside className="office-left"><div className="folder-label">ACTIVE CASE</div><h1>Anna Bell</h1><p className="muted">Missing person · 34 · Teacher</p><div className="paper-rule"/>
+      {([['office','Desk','01'],['case','Case file','02'],['documents','Documents',String(opened.length)],['people','People',String(CASE_001.people.length)],['requests','Field requests',String(pending.length||'—')],['reports','Field reports',String(reports.length||'—')],['notes','Notebook','∞']] as [Tab,string,string][]).map(([id,label,count])=><button key={id} className={`desk-nav ${tab===id?'active':''}`} onClick={()=>setTab(id)}>{label}<span>{count}</span></button>)}
+      <div className="left-bottom"><div className="folder-label">OFFICE</div><div>BLACKWOOD · ROOM 3</div><div className="muted">You stay here. Arthur travels.</div></div></aside>
+      <section className="office-content">{notice&&<button className="notice" onClick={()=>setNotice('')}>{notice} ×</button>}
+        {tab==='office'&&<Home pending={pending} reports={reports} onAssign={()=>setTab('requests')} onReport={r=>{setSelectedReport(r);setTab('reports');}}/>}{tab==='case'&&<CaseFile onOpen={openDocument}/>} {tab==='documents'&&<Documents opened={opened} onOpen={openDocument}/>} {tab==='people'&&<People onOpen={setSelectedPerson}/>} {tab==='requests'&&<Requests requests={requests} selected={selectedRequest} setSelected={setSelectedRequest} onAssign={sendRequest} location={location} setLocation={setLocation} focus={focus} setFocus={setFocus} timeframe={timeframe} setTimeframe={setTimeframe} instruction={instruction} setInstruction={setInstruction} now={now}/>} {tab==='reports'&&<Reports reports={reports} selected={selectedReport} setSelected={setSelectedReport}/>} {tab==='notes'&&<Notebook notes={notes} setNotes={setNotes}/>}</section>
     </section>
     {selectedDoc&&<DocumentModal d={selectedDoc} close={()=>setSelectedDoc(null)}/>} {selectedPerson&&<PersonModal p={selectedPerson} close={()=>setSelectedPerson(null)}/>} {showIntro&&<AgencyIntro close={closeIntro}/>} 
   </main>;
 };
 
-const AgencyIntro:React.FC<{close:()=>void}>=({close})=><div style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(12,10,8,.78)',display:'grid',placeItems:'center',padding:24}}><article style={{width:'min(760px,100%)',background:'#eee5d4',color:'#211d18',padding:'44px 48px',boxShadow:'0 28px 80px rgba(0,0,0,.45)',border:'1px solid #c9b99e'}}><div style={{fontSize:11,letterSpacing:3,fontWeight:700,opacity:.6}}>BLACKWOOD DETECTIVE AGENCY · DAY ONE</div><h2 style={{fontFamily:'Georgia,serif',fontSize:'clamp(30px,5vw,52px)',margin:'12px 0 22px',fontWeight:500}}>The door is finally open.</h2><p style={{fontFamily:'Georgia,serif',fontSize:18,lineHeight:1.7}}>You have spent years solving problems other people thought were too complicated to solve. Now, for the first time, the name on the door is yours.</p><p style={{fontFamily:'Georgia,serif',fontSize:18,lineHeight:1.7}}>Blackwood Detective Agency is new. There is no long client list, no reputation to protect and no department waiting to tell you where to look. There is only a desk, a telephone, your notes — and your judgment.</p><div style={{margin:'28px 0',padding:'20px 22px',borderLeft:'3px solid #786a55',background:'rgba(120,106,85,.08)'}}><strong>Arthur Vale</strong><br/><span style={{opacity:.75}}>Old friend. Field investigator. The one person you trust to go where you cannot.</span><p style={{margin:'12px 0 0',fontFamily:'Georgia,serif',fontStyle:'italic'}}>“You wanted an office. I found you a case. Try not to solve it before I get back.”</p></div><p style={{fontSize:14,lineHeight:1.6,opacity:.72}}>This is your first case. You remain in the office. When you need something from the outside world, you decide what Arthur should investigate. He will take time, return with what he actually found, and nothing more.</p><button onClick={close} style={{marginTop:16,border:0,padding:'13px 22px',background:'#2b2823',color:'#fff',cursor:'pointer',letterSpacing:1,fontWeight:700}}>OPEN THE CASE</button></article></div>;
+const AgencyIntro:React.FC<{close:()=>void}>=({close})=><div style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(12,10,8,.78)',display:'grid',placeItems:'center',padding:24}}><article style={{width:'min(760px,100%)',background:'#eee5d4',color:'#211d18',padding:'44px 48px',boxShadow:'0 28px 80px rgba(0,0,0,.45)',border:'1px solid #c9b99e'}}><div style={{fontSize:11,letterSpacing:3,fontWeight:700,opacity:.6}}>BLACKWOOD DETECTIVE AGENCY · DAY ONE</div><h2 style={{fontFamily:'Georgia,serif',fontSize:'clamp(30px,5vw,52px)',margin:'12px 0 22px',fontWeight:500}}>The door is finally open.</h2><p style={{fontFamily:'Georgia,serif',fontSize:18,lineHeight:1.7}}>You have spent years solving problems other people thought were too complicated to solve. People remember you for noticing what everyone else misses. Now, for the first time, the name on the door is yours.</p><p style={{fontFamily:'Georgia,serif',fontSize:18,lineHeight:1.7}}>Blackwood Detective Agency is new. There is no long client list, no reputation to protect and no department waiting to tell you where to look. There is only a desk, a telephone, your notes — and your judgment.</p><div style={{margin:'28px 0',padding:'20px 22px',borderLeft:'3px solid #786a55',background:'rgba(120,106,85,.08)'}}><strong>Arthur Vale</strong><br/><span style={{opacity:.75}}>Old friend. Field investigator. The one person you trust to go where you cannot.</span><p style={{margin:'12px 0 0',fontFamily:'Georgia,serif',fontStyle:'italic'}}>“You wanted an office. I found you a case. Try not to solve it before I get back.”</p></div><p style={{fontSize:14,lineHeight:1.6,opacity:.72}}>This is your first case. You remain in the office. When you need something from the outside world, you decide what Arthur should investigate. He will take time, return with what he actually found, and nothing more.</p><button onClick={close} style={{marginTop:16,border:0,padding:'13px 22px',background:'#2b2823',color:'#fff',cursor:'pointer',letterSpacing:1,fontWeight:700}}>OPEN THE CASE</button></article></div>;
 
 const Home:React.FC<{pending:Request[];reports:FieldReport[];onAssign:()=>void;onReport:(r:FieldReport)=>void}>=({pending,reports,onAssign,onReport})=><div className="home-view"><div className="view-kicker">BLACKWOOD · PRIVATE OFFICE</div><h2>The desk is the scene.</h2><p className="lede">You do not leave the office. You read, compare, form theories and decide what is worth asking Arthur to check. The case never tells you what to do next.</p><div className="paper-stack"><article className="desk-paper letter-paper"><div className="paper-type">CLIENT LETTER · OCT 13</div><h3>Margaret Bell</h3><p>“Please look properly. Anna would not leave without her coat, handbag and glasses.”</p><button onClick={onAssign}>Open the field desk →</button></article><article className="desk-paper newspaper-paper"><div className="paper-type">THE EVENING REGISTER</div><h3>TEACHER REPORTED MISSING</h3><p>Police currently describe the disappearance as voluntary. Last confirmed sighting: 18:12.</p><span className="red-pencil">SOMETHING DOES NOT FIT</span></article><article className="desk-paper report-paper"><div className="paper-type">ARTHUR VALE</div><h3>{reports.length?`${reports.length} field report${reports.length>1?'s':''}`:'Arthur is standing by'}</h3><p>{pending.length?`${pending.length} assignment${pending.length>1?'s':''} currently in the field.`:'No one is currently in the field.'}</p>{reports[0]&&<button onClick={()=>onReport(reports[0])}>Read latest report →</button>}</article></div><div className="home-footer"><span>CASE 001</span><b>Read. Compare. Ask. Connect.</b><span>{pending.length?'ARTHUR IN THE FIELD':'ARTHUR AVAILABLE'}</span></div></div>;
 
 const CaseFile:React.FC<{onOpen:(d:CaseDocument)=>void}>=({onOpen})=><div className="view"><div className="view-kicker">CASE FILE · CASE-001</div><h2>The Empty Room</h2><p className="lede">A woman vanished. The room tells a different story.</p><div className="case-grid"><div><label>CLIENT</label><strong>Margaret Bell</strong><p>Anna’s sister. She hired Blackwood after the police treated the disappearance as voluntary.</p></div><div><label>SUBJECT</label><strong>Anna Bell</strong><p>34 · Primary school teacher · Missing since October 12.</p></div><div><label>POLICE POSITION</label><strong>Voluntary absence</strong><p>The initial classification was made before several details were reconciled.</p></div><div><label>YOUR POSITION</label><strong>Unresolved</strong><p>No prescribed route. You decide what matters and what deserves another question.</p></div></div><button className="primary-paper-button" onClick={()=>{const d=doc('doc-client-letter');if(d)onOpen(d);}}>Read Margaret’s letter</button></div>;
-
 const Documents:React.FC<{opened:string[];onOpen:(d:CaseDocument)=>void}>=({opened,onOpen})=><div className="view"><div className="view-kicker">DESK ARCHIVE</div><h2>Documents</h2><p className="lede">Everything currently in the case file. Reading a document does not mean it is important.</p><div className="document-list">{CASE_001.documents.map(d=><button key={d.id} className={`document-row ${opened.includes(d.id)?'read':''}`} onClick={()=>onOpen(d)}><span className="doc-type">{d.type.toUpperCase()}</span><span><b>{d.title}</b><small>{d.date} · {d.source}</small></span><em>{opened.includes(d.id)?'READ':'UNREAD'}</em></button>)}</div></div>;
 const People:React.FC<{onOpen:(p:CasePerson)=>void}>=({onOpen})=><div className="view"><div className="view-kicker">CASE INDEX</div><h2>People</h2><p className="lede">Names are leads, not conclusions.</p><div className="people-grid">{CASE_001.people.map(p=><button key={p.id} className="person-card" onClick={()=>onOpen(p)}><span>{p.name.split(' ').map(n=>n[0]).join('')}</span><b>{p.name}</b><small>{p.role}</small></button>)}</div></div>;
 

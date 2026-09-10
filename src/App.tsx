@@ -15,6 +15,7 @@ import { NotificationToasts } from './components/desktop/NotificationToasts';
 import { MainMenuScreen } from './components/menu/MainMenuScreen';
 import { InvestigatorOnboarding } from './components/desktop/InvestigatorOnboarding';
 import { WorkstationTutorial } from './components/desktop/WorkstationTutorial';
+import { InvestigationCommandStrip } from './components/desktop/InvestigationCommandStrip';
 import { CaseResolvedEpilogue } from './components/desktop/CaseResolvedEpilogue';
 import { storyEngine } from './services/story/storyEngine';
 import { playSound } from './services/soundService';
@@ -94,6 +95,7 @@ const WorkstationOS: React.FC = () => {
       }}
     >
       <TopPanel />
+      <InvestigationCommandStrip />
       <Desktop><WindowManager /></Desktop>
       <Dock />
       <AltTabSwitcher />

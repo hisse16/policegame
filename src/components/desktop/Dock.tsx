@@ -9,20 +9,18 @@ const ACT_UNLOCKS: Record<number, string[]> = {
   2: ['evidence-lab', 'terminal'],
   3: ['investigation-board'],
   4: ['browser'],
-  5: ['police-mail', 'investigation-map'],
+  5: ['police-mail'],
   6: ['final-deduction']
 };
 
-// Keep the workstation useful without turning the dock into a task list.
-// Apps appear as investigation capabilities become relevant; there is no
-// persistent "next step" prompt competing with the case itself.
+// Only investigation tools are pinned. The workstation should feel like a toolset,
+// not a second checklist, and there is no map application anymore.
 const PINNED_APPS = [
   'police-records',
   'evidence-lab',
   'investigation-board',
   'investigation-notebook',
   'police-mail',
-  'investigation-map',
   'file-manager',
   'terminal',
   'browser',
@@ -54,49 +52,19 @@ export const Dock: React.FC = () => {
         {dockAppIds.map((appId) => {
           const appDef = APP_REGISTRY[appId];
           if (!appDef) return null;
-
           const appWindows = windows.filter((w) => w.appId === appId);
           const isOpen = appWindows.length > 0;
           const isActive = appWindows.some((w) => w.id === activeWindowId && !w.isMinimized);
-
           const handleClick = () => {
-            if (!isOpen) {
-              openApp(appId);
-              return;
-            }
-
+            if (!isOpen) { openApp(appId); return; }
             const activeWin = appWindows.find((w) => w.id === activeWindowId && !w.isMinimized);
-            if (activeWin) minimizeWindow(activeWin.id);
-            else focusWindow(appWindows[0].id);
+            if (activeWin) minimizeWindow(activeWin.id); else focusWindow(appWindows[0].id);
           };
-
           return (
-            <button
-              key={appId}
-              onClick={handleClick}
-              title={`${appDef.name}${isOpen ? ` (${appWindows.length} open)` : ''}`}
-              className={`relative group flex flex-col items-center justify-center w-10 h-10 rounded-lg transition-all duration-150 ${
-                isActive
-                  ? 'bg-slate-800/90 text-blue-400 shadow-inner'
-                  : isOpen
-                  ? 'bg-slate-900/60 text-slate-200 hover:bg-slate-800/60'
-                  : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/40'
-              }`}
-            >
-              <Icon
-                name={appDef.icon}
-                className={`w-5 h-5 transition-transform group-hover:scale-110 ${isActive ? 'text-blue-400' : ''}`}
-              />
-              {isOpen && (
-                <div
-                  className={`absolute -bottom-0.5 w-1.5 h-1.5 rounded-full ${
-                    isActive ? 'bg-blue-400' : 'bg-slate-400'
-                  }`}
-                />
-              )}
-              <div className="absolute -top-8 px-2 py-1 bg-slate-900 border border-slate-700 text-slate-200 text-[10px] rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-                {appDef.name}
-              </div>
+            <button key={appId} onClick={handleClick} title={`${appDef.name}${isOpen ? ` (${appWindows.length} open)` : ''}`} className={`relative group flex flex-col items-center justify-center w-10 h-10 rounded-lg transition-all duration-150 ${isActive ? 'bg-slate-800/90 text-blue-400 shadow-inner' : isOpen ? 'bg-slate-900/60 text-slate-200 hover:bg-slate-800/60' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/40'}`}>
+              <Icon name={appDef.icon} className={`w-5 h-5 transition-transform group-hover:scale-110 ${isActive ? 'text-blue-400' : ''}`} />
+              {isOpen && <div className={`absolute -bottom-0.5 w-1.5 h-1.5 rounded-full ${isActive ? 'bg-blue-400' : 'bg-slate-400'}`} />}
+              <div className="absolute -top-8 px-2 py-1 bg-slate-900 border border-slate-700 text-slate-200 text-[10px] rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">{appDef.name}</div>
             </button>
           );
         })}

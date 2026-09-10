@@ -3,6 +3,7 @@ import {
   MapContainer,
   Marker,
   Popup,
+  Polyline,
   ScaleControl,
   TileLayer,
   Tooltip,
@@ -14,6 +15,7 @@ import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Icon } from '../../common/Icon';
 import { MAP_LOCATIONS } from '../../../services/fictionalWebData';
+import { CASE_27_MAP_LOCATIONS, CASE_27_ROADS } from '../../../services/story/storyMapData';
 import { MapLocation } from '../../../types/browser';
 
 interface MapRendererProps {
@@ -26,20 +28,33 @@ const NORTHBRIDGE_BOUNDS: [[number, number], [number, number]] = [
   [40.731, -73.980],
 ];
 
-// The x/y positions authored for the fictional city remain the source of truth
-// for story distances. They are simply projected onto the street basemap.
+// Northbridge uses a fictional 0-100 city grid. Keeping the projection here
+// means story distances remain stable while the basemap supplies the modern
+// cartographic texture (roads, buildings, parks, shoreline, labels).
 const toLatLng = (loc: MapLocation): [number, number] => [
   NORTHBRIDGE_CENTER[0] + (loc.y - 50) * 0.00052,
   NORTHBRIDGE_CENTER[1] + (loc.x - 50) * 0.00068,
 ];
 
+const gridPointToLatLng = ([x, y]: [number, number]): [number, number] => [
+  NORTHBRIDGE_CENTER[0] + (y - 50) * 0.00052,
+  NORTHBRIDGE_CENTER[1] + (x - 50) * 0.00068,
+];
+
+const ALL_LOCATIONS: MapLocation[] = [
+  ...MAP_LOCATIONS,
+  ...CASE_27_MAP_LOCATIONS,
+];
+
 const markerColor = (category: string) => {
   switch (category) {
     case 'Emergency': return '#d93025';
+    case 'Commercial':
     case 'Business': return '#1967d2';
     case 'Residential': return '#7e57c2';
     case 'Transport': return '#e37400';
     case 'Government': return '#188038';
+    case 'Road': return '#374151';
     default: return '#5f6368';
   }
 };
@@ -83,11 +98,7 @@ const MapInteraction: React.FC<{ onClearSelection: () => void }> = ({ onClearSel
 };
 
 const Compass: React.FC = () => (
-  <div
-    className="absolute right-3 top-[58px] z-[1000] flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white shadow-[0_2px_10px_rgba(0,0,0,.18)]"
-    title="North"
-    aria-label="North"
-  >
+  <div className="absolute right-3 top-[58px] z-[1000] flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white shadow-[0_2px_10px_rgba(0,0,0,.18)]" title="North" aria-label="North">
     <span className="relative flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 bg-white">
       <span className="absolute -top-[2px] text-[8px] font-bold text-slate-700">N</span>
       <span className="mt-1 text-[15px] leading-none text-red-600">▲</span>
@@ -100,11 +111,12 @@ export const MapRenderer: React.FC<MapRendererProps> = ({ onNavigate }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [resetKey, setResetKey] = useState(0);
   const [showPlaces, setShowPlaces] = useState(true);
+  const [showCaseRoads, setShowCaseRoads] = useState(true);
 
   const filteredLocations = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return MAP_LOCATIONS;
-    return MAP_LOCATIONS.filter(location =>
+    if (!q) return ALL_LOCATIONS;
+    return ALL_LOCATIONS.filter(location =>
       `${location.name} ${location.address} ${location.district} ${location.category}`.toLowerCase().includes(q),
     );
   }, [searchQuery]);
@@ -134,28 +146,22 @@ export const MapRenderer: React.FC<MapRendererProps> = ({ onNavigate }) => {
       `}</style>
 
       <div className="northbridge-map absolute inset-0">
-        <MapContainer
-          center={NORTHBRIDGE_CENTER}
-          zoom={14}
-          minZoom={12}
-          maxZoom={19}
-          maxBounds={NORTHBRIDGE_BOUNDS}
-          maxBoundsViscosity={0.8}
-          scrollWheelZoom
-          zoomControl={false}
-          className="absolute inset-0"
-        >
-          <TileLayer
-            attribution='&copy; OpenStreetMap contributors &copy; CARTO'
-            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-            subdomains="abcd"
-            maxZoom={20}
-          />
+        <MapContainer center={NORTHBRIDGE_CENTER} zoom={14} minZoom={12} maxZoom={19} maxBounds={NORTHBRIDGE_BOUNDS} maxBoundsViscosity={0.8} scrollWheelZoom zoomControl={false} className="absolute inset-0">
+          <TileLayer attribution='&copy; OpenStreetMap contributors &copy; CARTO' url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" subdomains="abcd" maxZoom={20} />
           <ZoomControl position="bottomright" />
           <ScaleControl position="bottomleft" imperial={false} />
           <MapViewport location={selectedLocation} />
           <MapReset resetKey={resetKey} />
           <MapInteraction onClearSelection={() => setSelectedLocation(null)} />
+
+          {showCaseRoads && CASE_27_ROADS.map(road => (
+            <React.Fragment key={road.name}>
+              <Polyline positions={road.points.map(gridPointToLatLng)} pathOptions={{ color: '#ffffff', weight: 8, opacity: 0.92 }} />
+              <Polyline positions={road.points.map(gridPointToLatLng)} pathOptions={{ color: '#9aa0a6', weight: 4, opacity: 0.95 }}>
+                <Tooltip sticky>{road.name}</Tooltip>
+              </Polyline>
+            </React.Fragment>
+          ))}
 
           {showPlaces && filteredLocations.map(location => (
             <Marker
@@ -182,9 +188,7 @@ export const MapRenderer: React.FC<MapRendererProps> = ({ onNavigate }) => {
                   </div>
                   <div className="px-4 py-3">
                     <p className="text-[11px] leading-[17px] text-slate-600">{location.description}</p>
-                    <button onClick={() => onNavigate(`map://location/${location.id}`)} className="mt-3 w-full rounded-lg bg-[#1a73e8] px-3 py-2 text-[11px] font-semibold text-white transition hover:bg-[#1765cc]">
-                      Open location record
-                    </button>
+                    <button onClick={() => onNavigate(`map://location/${location.id}`)} className="mt-3 w-full rounded-lg bg-[#1a73e8] px-3 py-2 text-[11px] font-semibold text-white transition hover:bg-[#1765cc]">Open location record</button>
                   </div>
                 </div>
               </Popup>
@@ -200,9 +204,8 @@ export const MapRenderer: React.FC<MapRendererProps> = ({ onNavigate }) => {
           <input value={searchQuery} onChange={event => setSearchQuery(event.target.value)} placeholder="Search Northbridge" className="h-full min-w-0 flex-1 bg-transparent px-3 text-sm text-slate-800 outline-none placeholder:text-slate-400" />
           {searchQuery && <button onClick={() => setSearchQuery('')} className="mr-1 rounded-full p-2 text-slate-400 hover:bg-slate-100" aria-label="Clear search"><Icon name="X" className="h-4 w-4" /></button>}
           <div className="h-7 w-px bg-slate-200" />
-          <button onClick={() => setShowPlaces(value => !value)} className={`mx-1 rounded-lg p-2 ${showPlaces ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`} title={showPlaces ? 'Hide case locations' : 'Show case locations'} aria-label="Toggle case locations">
-            <Icon name="MapPinned" className="h-4 w-4" />
-          </button>
+          <button onClick={() => setShowPlaces(value => !value)} className={`mx-1 rounded-lg p-2 ${showPlaces ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`} title={showPlaces ? 'Hide locations' : 'Show locations'} aria-label="Toggle locations"><Icon name="MapPinned" className="h-4 w-4" /></button>
+          <button onClick={() => setShowCaseRoads(value => !value)} className={`mr-1 rounded-lg p-2 ${showCaseRoads ? 'bg-slate-100 text-slate-700' : 'text-slate-500 hover:bg-slate-100'}`} title={showCaseRoads ? 'Hide case roads' : 'Show case roads'} aria-label="Toggle case roads"><Icon name="Route" className="h-4 w-4" /></button>
         </div>
 
         {searchQuery && (
@@ -217,9 +220,7 @@ export const MapRenderer: React.FC<MapRendererProps> = ({ onNavigate }) => {
         )}
       </div>
 
-      <button onClick={resetMap} className="absolute right-3 top-4 z-[1000] flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-[0_2px_10px_rgba(0,0,0,.18)] hover:bg-slate-50" title="Recenter map" aria-label="Recenter map">
-        <Icon name="LocateFixed" className="h-4 w-4" />
-      </button>
+      <button onClick={resetMap} className="absolute right-3 top-4 z-[1000] flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-[0_2px_10px_rgba(0,0,0,.18)] hover:bg-slate-50" title="Recenter map" aria-label="Recenter map"><Icon name="LocateFixed" className="h-4 w-4" /></button>
     </div>
   );
 };

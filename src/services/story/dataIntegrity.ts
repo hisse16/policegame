@@ -49,12 +49,13 @@ const normalize = (value: unknown): void => {
   const serialized = JSON.stringify(object);
   const isMercer = serialized.includes('Daniel Mercer');
   const isReed = serialized.includes('Evelyn Reed');
+  const mentionsMercer = serialized.includes('Mercer');
 
   Object.keys(object).forEach((key) => {
     const current = object[key];
     if (typeof current === 'string') {
       let next = current;
-      if (isMercer) next = next.replace(/P-006219/g, 'P-005118');
+      if (isMercer || (isReed && mentionsMercer)) next = next.replace(/P-006219/g, 'P-005118');
       if (isReed) next = next.replace(/P-005118/g, EVELYN_REED_ID);
       object[key] = next;
     } else {

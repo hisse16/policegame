@@ -1,7 +1,4 @@
-/**
- * Blackwood Detective Agency — Case 001
- */
 import React from 'react';
-import { DetectiveGame } from './components/detective/DetectiveGame';
+import { DetectiveGameStable } from './components/detective/Game';
 
-export const App: React.FC = () => <DetectiveGame />;
+export const App: React.FC = () => <DetectiveGameStable />;

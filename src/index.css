@@ -1,4 +1,7 @@
-@import "./styles/detective.css";
-@import "./styles/investigation.css";
-@import "./styles/detective-experience.css";
 @import "./styles/office.css";
+
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; min-height: 100%; }
+body { background: #15120e; }
+button, textarea { font: inherit; }
+button:disabled { cursor: not-allowed; }
